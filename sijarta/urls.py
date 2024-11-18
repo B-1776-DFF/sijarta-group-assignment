@@ -20,6 +20,8 @@ from django.urls import path, include  # Ensure `include` is imported
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('home.urls')),  # Include the home.urls module
+    path('mypay/', include('mypay.urls')),
+    path('service_jobs/', include('service_jobs.urls'))
 
     
 ]
