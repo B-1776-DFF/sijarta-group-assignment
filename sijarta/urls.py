@@ -19,11 +19,9 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('aaf.urls')),
-
-    
     path('', include('home.urls')),  # Include the home.urls module
     path('mypay/', include('mypay.urls')),
     path('service_jobs/', include('service_jobs.urls')),
     path('discount/', include('discount.urls')),
+    path('aaf/', include('aaf.urls')),
 ]

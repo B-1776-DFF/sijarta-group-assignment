@@ -1,0 +1,36 @@
+{% extends 'baseaaf.html' %}
+
+{% block content %}
+<h2 class="text-center mb-4">Register as User</h2>
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <div class="mb-3">
+        <label for="sex" class="form-label">Sex</label>
+        <select class="form-select" id="sex" name="sex" required>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="phone" class="form-label">Phone Number</label>
+        <input type="text" class="form-control" id="phone" name="phone" required>
+    </div>
+    <div class="mb-3">
+        <label for="dob" class="form-label">Birth Date</label>
+        <input type="date" class="form-control" id="dob" name="dob" required>
+    </div>
+    <div class="mb-3">
+        <label for="address" class="form-label">Address</label>
+        <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Register</button>
+</form>
+{% endblock %}

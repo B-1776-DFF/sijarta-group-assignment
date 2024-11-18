@@ -1,13 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Categories</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+{% extends 'baseaaf.html' %}
 
+{% block title %}
+Service Categories
+{% endblock %}
+
+{% block content %}
 <div class="container my-5">
     <h1 class="text-center mb-4">Available Services</h1>
 
@@ -72,15 +69,8 @@
     }
 
     function redirectToSubcategory(subcategoryId) {
-        window.location.href = `/subcategory/${subcategoryId}/`;
+        const userType = '{{ request.user.is_authenticated }}' ? 'user' : 'worker';
+        window.location.href = `/subcategory/${subcategoryId}/${userType}/`;
     }
-
-    function redirectToSubcategory(subcategoryId) {
-    const userType = '{{ request.user.is_authenticated }}' ? 'user' : 'worker';
-    window.location.href = `/subcategory/${subcategoryId}/${userType}/`;
-}
-
 </script>
-
-</body>
-</html>
+{% endblock %}
