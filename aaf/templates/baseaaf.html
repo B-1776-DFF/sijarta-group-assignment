@@ -46,9 +46,9 @@
                         </li>
                         {% if role == "Customer" %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Homepage</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'mypay' %}">MyPay</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'orders' %}">My Orders</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'discounts' %}">Discount</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">MyPay</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">My Orders</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Discount</a></li>
                         {% elif role == "Worker" %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Manage My Jobs</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Manage Order Status</a></li>
