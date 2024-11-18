@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Modal -->
+<div id="transactionModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="relative bg-white rounded-lg p-8 shadow-lg w-1/2 border-4 border-pink-100">
+        <h2 class="text-2xl font-bold mb-4 text-pink-600">Perform Transaction</h2>
+        <select id="transactionType" class="mb-4 p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
+            <option value="topup">TopUp MyPay</option>
+            <option value="service">Service Payment</option>
+            <option value="transfer">Transfer MyPay</option>
+            <option value="withdrawal">Withdrawal</option>
+        </select>
+        <div id="transactionForm">
+            <!-- Dynamic form fields will be inserted here -->
+        </div>
+        <div class="flex justify-end mt-4">
+            <button id="closeModalBtn" class="bg-gray-200 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-lg transition-transform transform hover:scale-105">Close</button>
+            <button class="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-md shadow-lg ml-2 transition-transform transform hover:scale-105">Submit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('transactionType').addEventListener('change', function() {
+        const transactionForm = document.getElementById('transactionForm');
+        const selectedType = this.value;
+        let formContent = '';
+
+        switch (selectedType) {
+            case 'topup':
+                formContent = `
+                    <label for="topupAmount" class="block mb-2 text-pink-600">Top-Up Amount</label>
+                    <input type="number" id="topupAmount" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter amount">
+                `;
+                break;
+            case 'service':
+                formContent = `
+                    <label for="serviceSession" class="block mb-2 text-pink-600">Service Session Selection</label>
+                    <select id="serviceSession" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
+                        <!-- Options should be dynamically generated from backend -->
+                    </select>
+                    <label for="servicePrice" class="block mt-4 mb-2 text-pink-600">Service Price</label>
+                    <input type="text" id="servicePrice" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" readonly>
+                `;
+                break;
+            case 'transfer':
+                formContent = `
+                    <label for="recipientPhone" class="block mb-2 text-pink-600">Recipient's Phone Number</label>
+                    <input type="text" id="recipientPhone" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter phone number">
+                    <label for="transferAmount" class="block mt-4 mb-2 text-pink-600">Transfer Amount</label>
+                    <input type="number" id="transferAmount" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter amount">
+                `;
+                break;
+            case 'withdrawal':
+                formContent = `
+                    <label for="bankName" class="block mb-2 text-pink-600">Bank Name</label>
+                    <select id="bankName" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
+                        <option value="gopay">GoPay</option>
+                        <option value="ovo">OVO</option>
+                        <option value="bca">BCA</option>
+                        <option value="bni">BNI</option>
+                        <option value="mandiri">Mandiri</option>
+                    </select>
+                    <label for="bankAccountNumber" class="block mt-4 mb-2 text-pink-600">Bank Account Number</label>
+                    <input type="text" id="bankAccountNumber" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter account number">
+                    <label for="withdrawalAmount" class="block mt-4 mb-2 text-pink-600">Withdrawal Amount</label>
+                    <input type="number" id="withdrawalAmount" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter amount">
+                `;
+                break;
+        }
+
+        transactionForm.innerHTML = formContent;
+    });
+
+    // Trigger change event to load initial form state
+    document.getElementById('transactionType').dispatchEvent(new Event('change'));
+
+    // Modal functionality
+    document.getElementById('closeModalBtn').addEventListener('click', function() {
+        document.getElementById('transactionModal').classList.add('hidden');
+    });
+
+    // Close modal when clicking outside of it
+    document.getElementById('transactionModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            this.classList.add('hidden');
+        }
+    });
+</script>
+{% endblock %}

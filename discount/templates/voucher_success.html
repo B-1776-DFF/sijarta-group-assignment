@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Success Notification Modal</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    /* Modal background */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    /* Modal box */
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fff;
+      padding: 20px;
+      border: 1px solid #000;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      z-index: 1001;
+      width: 300px;
+    }
+    /* Modal title */
+    .modal h2 {
+      margin: 0 0 10px;
+    }
+    /* Close button */
+    .close-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .close-button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Modal Overlay -->
+<div class="modal-overlay" id="modal-overlay">
+  <!-- Modal Content -->
+  <div class="modal">
+    <h2>Success</h2>
+    <p>Congrats!! You have successfully bought a voucher with the code <strong>XXX</strong>.</p>
+    <p>This voucher can be used until <strong>XX/XX/XXXX</strong> with <strong>X</strong> number of usage quota.</p>
+    <button class="close-button" id="close-button">Close</button>
+  </div>
+</div>
+
+<script>
+  // Function to open the modal
+  function openModal() {
+    document.getElementById('modal-overlay').style.display = 'block';
+  }
+
+  // Function to close the modal
+  function closeModal() {
+    document.getElementById('modal-overlay').style.display = 'none';
+  }
+
+  // Attach the close function to the button
+  document.getElementById('close-button').addEventListener('click', closeModal);
+
+  // Example: Simulate a successful voucher purchase
+  // In real use, call `openModal()` after a successful server response
+  openModal();
+</script>
+
+</body>
+</html>

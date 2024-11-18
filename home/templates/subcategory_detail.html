@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ subcategory.name }} - User View</title>
+</head>
+<body>
+    <h1>{{ subcategory.name }}</h1>
+    <p>{{ subcategory.description }}</p>
+
+    <h3>Available Workers</h3>
+    <ul>
+        {% for worker in workers %}
+            <li>{{ worker.user.get_full_name }}</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Testimonials</h3>
+    <ul>
+        {% for testimonial in testimonials %}
+            <li>{{ testimonial.feedback }} - {{ testimonial.user.username }}</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Available Service Sessions</h3>
+    <ul>
+        {% for session in service_sessions %}
+            <li>
+                {{ session.name }} - ${{ session.price }}
+                <button onclick="bookService({{ session.id }})">Book</button>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Add the booking script -->
+    <script>
+        function bookService(sessionId) {
+            fetch(`/book-service/${sessionId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'  // Include CSRF token for POST requests
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Booking successful! Your booking ID is: ' + data.booking_id);
+                } else {
+                    alert('Booking failed: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while booking. Please try again later.');
+            });
+        }
+    </script>
+</body>
+</html>

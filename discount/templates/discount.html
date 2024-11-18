@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discount and Promo Layout</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+    }
+    .container {
+      border: 1px solid #000;
+      padding: 20px;
+      width: 80%;
+      margin: auto;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-title {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .table {
+      background-color: #FFFFFF;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table th {
+      background-color: #51ADE5;
+      color: white;
+      border: 1px solid #000;
+      padding: 10px;
+      text-align: center;
+    }
+    .table td {
+      color: black;
+      border: 1px solid #000;
+      padding: 10px;
+      text-align: center;
+    }
+    .button {
+      padding: 5px 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .button:hover {
+      background-color: #0056b3;
+    }
+    /* Modal background */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    /* Modal box */
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fff;
+      padding: 20px;
+      border: 1px solid #000;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      z-index: 1001;
+      width: 300px;
+    }
+    /* Modal title */
+    .modal h2 {
+      margin: 0 0 10px;
+    }
+    /* Close button */
+    .close-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .close-button:hover {
+      background-color: #0056b3;
+    }
+    .discount-section {
+      background-color: #EC008C;
+      color: white;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container discount-section">
+    <!-- Discount Section -->
+    <div class="section">
+      <div class="section-title">Discount</div>
+      <table class="table ">
+        <thead>
+            Voucher
+          <tr>
+            <th>Code</th>
+            <th>Discount</th>
+            <th>Min Tr Order</th>
+            <th>Number Day Valid</th>
+            <th>User Quota</th>
+            <th>Price</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CODE123</td>
+            <td>10%</td>
+            <td>$50</td>
+            <td>30</td>
+            <td>5</td>
+            <td>$5</td>
+            <td><button class="button buy-button" data-code="CODE123" data-price="5">Buy</button></td>
+          </tr>
+          <tr>
+            <td>CODE456</td>
+            <td>20%</td>
+            <td>$100</td>
+            <td>60</td>
+            <td>3</td>
+            <td>$10</td>
+            <td><button class="button buy-button" data-code="CODE456" data-price="10">Buy</button></td>
+          </tr>
+          <tr>
+            <td>CODE789</td>
+            <td>15%</td>
+            <td>$75</td>
+            <td>45</td>
+            <td>4</td>
+            <td>$8</td>
+            <td><button class="button buy-button" data-code="CODE789" data-price="8">Buy</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Promo Section -->
+    <div class="section">
+      <table class="table">
+        <thead>
+            Promo
+          <tr>
+            <th>Code</th>
+            <th>OfferEndDate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PROMO123</td>
+            <td>12/31/2024</td>
+          </tr>
+          <tr>
+            <td>PROMO456</td>
+            <td>01/31/2025</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal for Success -->
+  <div class="modal-overlay" id="modal-overlay-success">
+    <div class="modal">
+      <h2>Success</h2>
+      <p>Congrats!! You have successfully bought a voucher with the code <strong id="voucher-code-success"></strong>.</p>
+      <p>This voucher can be used until <strong id="voucher-validity-success">XX/XX/XXXX</strong> with <strong id="voucher-quota-success">X</strong> number of usage quota.</p>
+      <button class="close-button" id="close-button-success">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Failure -->
+  <div class="modal-overlay" id="modal-overlay-fail">
+    <div class="modal">
+      <h2>Failed</h2>
+      <p>Sorry, your balance is not enough to buy this voucher.</p>
+      <button class="close-button" id="close-button-fail">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // Example balance (replace this logic with actual balance check)
+    let myPayBalance = 0;
+
+    // Open success modal
+    function openSuccessModal(code) {
+      document.getElementById('voucher-code-success').textContent = code;
+      document.getElementById('modal-overlay-success').style.display = 'block';
+    }
+
+    // Open failure modal
+    function openFailureModal() {
+      document.getElementById('modal-overlay-fail').style.display = 'block';
+    }
+
+    // Close modal function
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    // Attach the close function to success modal button
+    document.getElementById('close-button-success').addEventListener('click', function() {
+      closeModal('modal-overlay-success');
+    });
+
+    // Attach the close function to failure modal button
+    document.getElementById('close-button-fail').addEventListener('click', function() {
+      closeModal('modal-overlay-fail');
+    });
+
+    // Add event listeners to all "Buy" buttons
+    const buyButtons = document.querySelectorAll('.buy-button');
+    buyButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const code = button.dataset.code;
+        const price = parseInt(button.dataset.price);
+
+        // Simulate balance check
+        if (myPayBalance >= price) {
+          // Deduct balance and open success modal
+          myPayBalance -= price;
+          openSuccessModal(code);
+        } else {
+          openFailureModal();
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

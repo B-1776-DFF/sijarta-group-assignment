@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Categories</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container my-5">
+    <h1 class="text-center mb-4">Available Services</h1>
+
+    <!-- Search and Filter -->
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-3">
+            <select id="categoryFilter" class="form-control" onchange="filterCategories()">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.name }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-5">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search for subcategory..." onkeyup="filterCategories()">
+        </div>
+        <div class="col-md-1">
+            <button class="btn btn-primary" onclick="filterCategories()">Search</button>
+        </div>
+    </div>
+
+    <!-- Categories and Subcategories -->
+    <div id="categoriesContainer">
+        {% for category in categories %}
+            <div class="card mb-3">
+                <div class="card-header" onclick="toggleCategory('{{ category.name }}')" style="cursor:pointer;">
+                    <strong>{{ category.name }}</strong>
+                </div>
+                <ul class="list-group list-group-flush" id="category-{{ category.name }}" style="display: none;">
+                    {% for subcategory in category.subcategories.all %}
+                        <li class="list-group-item subcategory-item" data-category="{{ category.name }}" onclick="redirectToSubcategory('{{ subcategory.id }}')">
+                            {{ subcategory.name }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function filterCategories() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase();
+        const items = document.querySelectorAll('.subcategory-item');
+
+        items.forEach(item => {
+            const matchesQuery = item.textContent.toLowerCase().includes(query);
+            const matchesCategory = categoryFilter === "" || item.getAttribute('data-category').toLowerCase() === categoryFilter;
+
+            if (matchesQuery && matchesCategory) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    function toggleCategory(categoryName) {
+        const categoryElement = document.getElementById('category-' + categoryName);
+        categoryElement.style.display = (categoryElement.style.display === 'none') ? 'block' : 'none';
+    }
+
+    function redirectToSubcategory(subcategoryId) {
+        window.location.href = `/subcategory/${subcategoryId}/`;
+    }
+
+    function redirectToSubcategory(subcategoryId) {
+    const userType = '{{ request.user.is_authenticated }}' ? 'user' : 'worker';
+    window.location.href = `/subcategory/${subcategoryId}/${userType}/`;
+}
+
+</script>
+
+</body>
+</html>
