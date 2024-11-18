@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'home',
     'mypay',
     'service_jobs',
+    'discount',
+    'testimony',
 ]
 
 MIDDLEWARE = [
