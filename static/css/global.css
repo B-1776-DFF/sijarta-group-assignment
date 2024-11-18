@@ -1,0 +1,16 @@
+.card {
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.balance-card {
+    background: linear-gradient(to bottom right, #7C3AED, #EC4899);
+    color: white;
+}
+.chart-card {
+    background: linear-gradient(to bottom right, #3B82F6, #2563EB);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
