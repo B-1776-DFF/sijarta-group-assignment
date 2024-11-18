@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subcategory.name }} - Worker View</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .section {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .section h3 {
+            margin-top: 0;
+        }
+        .service-options, .workers, .testimonials {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .join-btn {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            background: #007BFF;
+            color: #fff;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .join-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ subcategory.name }}</h1>
+    <p><strong>Category:</strong> {{ subcategory.category.name }}</p>
+    <p>{{ subcategory.description }}</p>
+
+    {% if not is_worker_joined %}
+    <form method="post" action="{% url 'join_subcategory' subcategory.id %}">
+        {% csrf_token %}
+        <button type="submit" class="join-btn">Photography</button>
+    </form>
+    {% endif %}
+
+    <div class="section">
+        <h3>Available Service Sessions</h3>
+        <div class="service-options">
+            {% for session in service_sessions %}
+            <div class="card">
+                <p><strong>Service:</strong> {{ session.name }}</p>
+                <p><strong>Price:</strong> ${{ session.price }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Workers</h3>
+        <div class="workers">
+            {% for worker in workers %}
+            <div class="card">
+                <p>{{ worker.name }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Testimonials</h3>
+        <div class="testimonials">
+            {% for testimonial in testimonials %}
+            <div class="card">
+                <p><strong>User:</strong> {{ testimonial.user.username }}</p>
+                <p>{{ testimonial.feedback }}</p>
+                <p><strong>Rate:</strong> {{ testimonial.rate }}/5</p>
+                <p><strong>Date:</strong> {{ testimonial.created_at }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

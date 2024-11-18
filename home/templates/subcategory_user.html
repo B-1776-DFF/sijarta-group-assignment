@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subcategory.name }} - User View</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        .description {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .service-session {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .workers, .testimonials {
+            margin: 20px 0;
+        }
+        .worker-grid {
+            display: flex;
+            gap: 10px;
+        }
+        .worker-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+            flex: 1;
+        }
+        .testimonial {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <h1>{{ subcategory.name }}</h1>
+            <span>Category: {{ subcategory.category }}</span>
+        </div>
+
+        <!-- Description Section -->
+        <div class="description">
+            <p>{{ subcategory.description }}</p>
+        </div>
+
+        <!-- Service Session Options -->
+        <h3>Service Session Options</h3>
+        {% for session in service_sessions %}
+        <div class="service-session">
+            <span>{{ session.name }}</span>
+            <span>Price: ${{ session.price }}</span>
+            <button onclick="bookService({{ session.id }})">Book Service</button>
+        </div>
+        {% endfor %}
+
+        <!-- Workers Section -->
+        <h3>Workers</h3>
+        <div class="workers">
+            <div class="worker-grid">
+                {% for worker in workers %}
+                <div class="worker-card">
+                    {{ worker.user.get_full_name }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Testimonials Section -->
+        <h3>Testimonials</h3>
+        <div class="testimonials">
+            {% for testimonial in testimonials %}
+            <div class="testimonial">
+                <strong>{{ testimonial.user.username }}</strong> ({{ testimonial.date }})
+                <p>{{ testimonial.feedback }}</p>
+                <small>Worker: {{ testimonial.worker_name }} | Rating: {{ testimonial.rating }}</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
