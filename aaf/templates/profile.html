@@ -1,0 +1,33 @@
+{% extends 'baseaaf.html' %}
+
+{% block content %}
+<h2 class="text-center mb-4">Profile</h2>
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title">Name: {{ user.name }}</h5>
+                <p><strong>Role:</strong> {{ user.role }}</p>
+                <p><strong>Sex:</strong> {{ user.sex }}</p>
+                <p><strong>Phone Number:</strong> {{ user.phone_num }}</p>
+                <p><strong>Birth Date:</strong> {{ user.dob }}</p>
+                <p><strong>Address:</strong> {{ user.address }}</p>
+                <p><strong>MyPay Balance:</strong> {{ user.mypay_balance }}</p>
+                {% if role == "Customer" %}
+                    <p><strong>Level:</strong> {{ profile.level }}</p>
+                {% elif role == "Worker" %}
+                    <p><strong>Bank Name:</strong> {{ profile.bank_name }}</p>
+                    <p><strong>Account Number:</strong> {{ profile.acc_number }}</p>
+                    <p><strong>NPWP:</strong> {{ profile.npwp }}</p>
+                    <p><strong>Rating:</strong> {{ profile.rate }}</p>
+                    <p><strong>Completed Orders:</strong> {{ profile.total_finish_order }}</p>
+                {% endif %}
+            </div>
+            {% if role == "Worker" %}
+                <img src="{{ profile.pic_url }}" alt="Profile Picture" class="img-thumbnail profile-img">
+            {% endif %}
+        </div>
+        <a href="{% url 'profile_update' %}" class="btn btn-primary mt-3">Update Profile</a>
+    </div>
+</div>
+{% endblock %}
