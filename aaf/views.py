@@ -1,159 +1,232 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db import connection
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
-from .models import User, Customer, Worker
+from django.views.decorators.csrf import csrf_exempt
+from uuid import UUID
 
+@csrf_exempt
 def login_view(request):
     if request.method == 'POST':
-        phone = request.POST['phone']
-        password = request.POST['password']
-        try:
-            user = User.objects.get(phone_num=phone)
-            if check_password(password, user.pwd):
-                request.session['user_id'] = str(user.id)
-                response = redirect('profile')
-                if Worker.objects.filter(id=user.id).exists():
-                    response.set_cookie('user_role', 'Worker')
-                    print("User role set to Worker")
-                elif Customer.objects.filter(id=user.id).exists():
-                    response.set_cookie('user_role', 'Customer')
-                    print("User role set to Customer")
-                return response
-            else:
-                messages.error(request, "Invalid phone number or password.")
-        except User.DoesNotExist:
-            messages.error(request, "User not found.")
+        phone = request.POST.get('phone')
+        password = request.POST.get('password')
+
+        print("Phone:", phone, "Password:", password)  # Debug log
+
+        if not phone or not password:
+            messages.error(request, "Phone number and password are required.")
+            return render(request, 'login.html')
+
+        with connection.cursor() as cursor:
+            cursor.execute(rf"""
+            SET search_path TO sijartagroupassignment;
+            SELECT id, name, pwd FROM "USER" WHERE phonenum = '{phone}'""")
+            user = cursor.fetchone()
+            print("User fetched:", user)  # Debug log
+
+        if user:
+            user_id = user[0]  # Assuming this is the UUID
+            request.session['user_id'] = str(user_id)
+            request.session['user_role'] = None
+            request.session['user_phone_num'] = phone
+            print("User ID set:", request.session['user_id'])  # Debug log
+
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                SELECT COUNT(*) FROM WORKER WHERE id = %s;
+                """, [user[0]])
+                if cursor.fetchone()[0] > 0:
+                    request.session['user_role'] = 'Worker'
+
+                cursor.execute("""
+                SELECT COUNT(*) FROM CUSTOMER WHERE id = %s;
+                """, [user[0]])
+                if cursor.fetchone()[0] > 0:
+                    request.session['user_role'] = 'Customer'
+
+            print("User role set:", request.session['user_role'])  # Debug log
+            return redirect('profile')
+
+        messages.error(request, "Invalid phone number or password.")
     return render(request, 'login.html')
 
 
 
 def logout_view(request):
-    # Clear the session and cookies
-    response = redirect('login')
     request.session.flush()
-    response.delete_cookie('user_role')
-    return response
+    return redirect('login')
 
+
+@csrf_exempt
 def register_user_view(request):
     if request.method == 'POST':
-        name = request.POST['name']
-        password = make_password(request.POST['password'])
-        sex = request.POST['sex']
-        phone = request.POST['phone']
-        dob = request.POST['dob']
-        address = request.POST['address']
+        name = request.POST.get('name')
+        password = make_password(request.POST.get('password'))
+        sex = request.POST.get('sex')
+        phone = request.POST.get('phone')
+        dob = request.POST.get('dob')
+        address = request.POST.get('address')
 
-        # Create User
-        user = User.objects.create(
-            name=name, pwd=password, sex=sex, phone_num=phone, dob=dob, address=address
-        )
+        with connection.cursor() as cursor:
+            cursor.execute("""
+            SET search_path TO sijartagroupassignment;
+            INSERT INTO "USER" (name, pwd, sex, phonenum, dob, address) 
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;
+            """, [name, password, sex, phone, dob, address])
+            user_id = cursor.fetchone()[0]
 
-        # Create Customer
-        Customer.objects.create(id=user)
+            cursor.execute("""
+            INSERT INTO CUSTOMER (id) VALUES (%s);
+            """, [user_id])
 
         messages.success(request, "User registration successful!")
         return redirect('login')
 
-    return render(request, 'register_user.html')
+    return render(request, 'register.html')
 
 
+@csrf_exempt
 def register_worker_view(request):
     if request.method == 'POST':
-        name = request.POST['name']
-        password = make_password(request.POST['password'])
-        sex = request.POST['sex']
-        phone = request.POST['phone']
-        dob = request.POST['dob']
-        address = request.POST['address']
-        bank_name = request.POST['bank_name']
-        acc_number = request.POST['acc_number']
-        npwp = request.POST['npwp']
-        pic_url = request.POST['pic_url']
+        name = request.POST.get('name')
+        password = make_password(request.POST.get('password'))
+        sex = request.POST.get('sex')
+        phone = request.POST.get('phone')
+        dob = request.POST.get('dob')
+        address = request.POST.get('address')
+        bank_name = request.POST.get('bank_name')
+        acc_number = request.POST.get('acc_number')
+        npwp = request.POST.get('npwp')
+        pic_url = request.POST.get('pic_url')
 
-        # Create User
-        user = User.objects.create(
-            name=name, pwd=password, sex=sex, phone_num=phone, dob=dob, address=address
-        )
+        with connection.cursor() as cursor:
+            cursor.execute("""
+            SET search_path TO sijartagroupassignment;
+            INSERT INTO "USER" (name, pwd, sex, phonenum, dob, address) 
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;
+            """, [name, password, sex, phone, dob, address])
+            user_id = cursor.fetchone()[0]
 
-        # Create Worker
-        Worker.objects.create(
-            id=user, bank_name=bank_name, acc_number=acc_number, npwp=npwp, pic_url=pic_url
-        )
+            cursor.execute("""
+            INSERT INTO WORKER (id, bank_name, acc_number, npwp, pic_url) 
+            VALUES (%s, %s, %s, %s, %s);
+            """, [user_id, bank_name, acc_number, npwp, pic_url])
 
         messages.success(request, "Worker registration successful!")
         return redirect('login')
 
     return render(request, 'register_worker.html')
 
-def profile_update_view(request):
-    user_id = request.session.get('user_id')
-    user = get_object_or_404(User, id=user_id)
-
-    if request.method == 'POST':
-        user.name = request.POST['name']
-        user.phone_num = request.POST['phone']
-        user.address = request.POST['address']
-        if hasattr(user, 'worker'):
-            worker = user.worker
-            worker.bank_name = request.POST['bank_name']
-            worker.acc_number = request.POST['acc_number']
-            worker.save()
-        user.save()
-        messages.success(request, "Profile updated successfully!")
-        return redirect('profile')
-
-    context = {'user': user}
-    return render(request, 'profile_update.html', context)
-
-def register_view(request):
-    return render(request, 'register.html')
 
 def profile_view(request):
-    user_id = request.session.get('user_id')
-    user = get_object_or_404(User, id=user_id)
-    role = request.COOKIES.get('user_role')
-    print(f"Role retrieved from cookies: {role}")
+    uuid = request.session.get('user_id')
+    print("Phone number:", uuid)  # Debug log
+    if not uuid:
+        return redirect('login')
 
-    context = {'user': user, 'role': role}
-    if role == "Customer":
-        context['profile'] = get_object_or_404(Customer, id=user_id)
-    elif role == "Worker":
-        context['profile'] = get_object_or_404(Worker, id=user_id)
+    role = request.session.get('user_role')
 
+    with connection.cursor() as cursor:
+        # Fetch user data using phone_num instead of user_id
+        cursor.execute("""
+        SET search_path TO sijartagroupassignment;
+        SELECT * FROM "USER" WHERE id = %s;
+        """, [uuid])
+        user = cursor.fetchone()
+
+        profile = None
+        if role == 'Customer':
+            cursor.execute("""
+            SELECT * FROM CUSTOMER WHERE id = %s;
+            """, [uuid])  # Query profile using phone_num
+            profile = cursor.fetchone()
+            profile_data = {
+                'level': profile[1]
+            }
+        elif role == 'Worker':
+            cursor.execute("""
+            SELECT * FROM WORKER WHERE id = %s;
+            """, [uuid])  # Query profile using phone_num
+            profile = cursor.fetchone()
+            profile_data = {
+                'bank_name': profile[1],
+                'acc_number': profile[2],
+                'npwp': profile[3],
+                'pic_url': profile[4],
+                'rate': profile[5],
+                'total_finish_order': profile[6]
+            }
+        print("Profile fetched:", profile)  # Debug log
+        print("Role:", role)  # Debug log
+        print("User:", user)  # Debug log
+
+    context = {
+        'user': {
+            'id': user[0],
+            'name': user[1],
+            'sex': user[2],
+            'phone_num': user[3],
+            'pwd': user[4],
+            'dob': user[5],
+            'address': user[6],
+            'mypay_balance': user[7]
+        },
+        'profile': profile_data,
+        'role': role
+    }
     return render(request, 'profile.html', context)
 
 
 
 
+@csrf_exempt
 def profile_update_view(request):
     user_id = request.session.get('user_id')
-    user = get_object_or_404(User, id=user_id)
     role = request.session.get('user_role')
 
+    if not user_id:
+        return redirect('login')
+
     if request.method == 'POST':
-        user.name = request.POST['name']
-        user.phone_num = request.POST['phone']
-        user.sex = request.POST['sex']
-        user.dob = request.POST['dob']
-        user.address = request.POST['address']
-        if password := request.POST.get('password'):
-            user.pwd = make_password(password)
+        name = request.POST.get('name')
+        phone = request.POST.get('phone')
+        sex = request.POST.get('sex')
+        dob = request.POST.get('dob')
+        address = request.POST.get('address')
+        password = request.POST.get('password')
 
-        if role == "Worker":
-            worker = get_object_or_404(Worker, id=user_id)
-            worker.bank_name = request.POST['bank_name']
-            worker.acc_number = request.POST['acc_number']
-            worker.npwp = request.POST['npwp']
-            worker.pic_url = request.POST['pic_url']
-            worker.save()
+        with connection.cursor() as cursor:
+            cursor.execute("""
+            SET search_path TO sijartagroupassignment;
+            UPDATE "USER" SET name = %s, phonenum = %s, sex = %s, dob = %s, address = %s
+            WHERE id = %s;
+            """, [name, phone, sex, dob, address, user_id])
 
-        user.save()
+            if password:
+                cursor.execute("""
+                UPDATE "USER" SET pwd = %s WHERE id = %s;
+                """, [make_password(password), user_id])
+
+            if role == 'Worker':
+                bank_name = request.POST.get('bank_name')
+                acc_number = request.POST.get('acc_number')
+                npwp = request.POST.get('npwp')
+                pic_url = request.POST.get('pic_url')
+
+                cursor.execute("""
+                UPDATE WORKER SET bank_name = %s, acc_number = %s, npwp = %s, pic_url = %s 
+                WHERE id = %s;
+                """, [bank_name, acc_number, npwp, pic_url, user_id])
+
         messages.success(request, "Profile updated successfully!")
         return redirect('profile')
 
+    with connection.cursor() as cursor:
+        cursor.execute("""
+        SET search_path TO sijartagroupassignment;
+        SELECT * FROM "USER" WHERE id = %s;
+        """, [user_id])
+        user = cursor.fetchone()
+
     context = {'user': user, 'role': role}
-    if role == "Worker":
-        context['profile'] = get_object_or_404(Worker, id=user_id)
-
     return render(request, 'profile_update.html', context)
-
