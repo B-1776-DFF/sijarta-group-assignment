@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db import connection
+from django.db import connection, IntegrityError, DatabaseError, InternalError
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from django.views.decorators.csrf import csrf_exempt
-from uuid import UUID
+import uuid
 
 @csrf_exempt
 def login_view(request):
@@ -60,6 +60,7 @@ def logout_view(request):
 @csrf_exempt
 def register_user_view(request):
     if request.method == 'POST':
+        # Get form data
         name = request.POST.get('name')
         password = make_password(request.POST.get('password'))
         sex = request.POST.get('sex')
@@ -67,21 +68,37 @@ def register_user_view(request):
         dob = request.POST.get('dob')
         address = request.POST.get('address')
 
-        with connection.cursor() as cursor:
-            cursor.execute("""
-            SET search_path TO sijartagroupassignment;
-            INSERT INTO "USER" (name, pwd, sex, phonenum, dob, address) 
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;
-            """, [name, password, sex, phone, dob, address])
-            user_id = cursor.fetchone()[0]
+        # Generate a unique ID for the user
+        user_id = str(uuid.uuid4())
 
-            cursor.execute("""
-            INSERT INTO CUSTOMER (id) VALUES (%s);
-            """, [user_id])
+        try:
+            with connection.cursor() as cursor:
+                # Insert the user into the database
+                cursor.execute("""
+                SET search_path TO sijartagroupassignment;
+                INSERT INTO "USER" (id, name, pwd, sex, phonenum, dob, address) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
+                """, [user_id, name, password, sex, phone, dob, address])
+                user_id = cursor.fetchone()[0]
 
-        messages.success(request, "User registration successful!")
-        return redirect('login')
+                # Insert into the CUSTOMER table
+                cursor.execute("""
+                INSERT INTO CUSTOMER (id) VALUES (%s);
+                """, [user_id])
 
+            # Success message
+            messages.success(request, "User registration successful!")
+            return redirect('login')
+
+        except InternalError as e:
+            if 'Phone number already registered' in str(e):
+                messages.error(request, "The phone number is already registered. Please use a different one.")
+            else:
+                messages.error(request, "An error occurred during registration. Please try again.")
+
+    return render(request, 'register_user.html')
+
+def register_view(request):
     return render(request, 'register.html')
 
 
@@ -99,21 +116,31 @@ def register_worker_view(request):
         npwp = request.POST.get('npwp')
         pic_url = request.POST.get('pic_url')
 
-        with connection.cursor() as cursor:
-            cursor.execute("""
-            SET search_path TO sijartagroupassignment;
-            INSERT INTO "USER" (name, pwd, sex, phonenum, dob, address) 
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;
-            """, [name, password, sex, phone, dob, address])
-            user_id = cursor.fetchone()[0]
+        # Generate a unique ID for the user
+        user_id = str(uuid.uuid4())
 
-            cursor.execute("""
-            INSERT INTO WORKER (id, bank_name, acc_number, npwp, pic_url) 
-            VALUES (%s, %s, %s, %s, %s);
-            """, [user_id, bank_name, acc_number, npwp, pic_url])
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                SET search_path TO sijartagroupassignment;
+                INSERT INTO "USER" (name, pwd, sex, phonenum, dob, address) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
+                """, [user_id, name, password, sex, phone, dob, address])
+                user_id = cursor.fetchone()[0]
 
-        messages.success(request, "Worker registration successful!")
-        return redirect('login')
+                cursor.execute("""
+                INSERT INTO WORKER (id, bank_name, acc_number, npwp, pic_url) 
+                VALUES (%s, %s, %s, %s, %s);
+                """, [user_id, bank_name, acc_number, npwp, pic_url])
+
+            messages.success(request, "Worker registration successful!")
+            return redirect('login')
+
+        except InternalError as e:
+            if 'Phone number already registered' in str(e):
+                messages.error(request, "The phone number is already registered. Please use a different one.")
+            else:
+                messages.error(request, "An error occurred during registration. Please try again.")
 
     return render(request, 'register_worker.html')
 
