@@ -25,6 +25,11 @@ def login_view(request):
             print("User fetched:", user)  # Debug log
 
         if user:
+            # Verify the password
+            if (password != user[2]) != check_password(password, user[2]):
+                messages.error(request, "LOL.")
+                return render(request, 'login.html')
+            
             user_id = user[0]  # Assuming this is the UUID
             request.session['user_id'] = str(user_id)
             request.session['user_role'] = None
@@ -257,3 +262,6 @@ def profile_update_view(request):
 
     context = {'user': user, 'role': role}
     return render(request, 'profile_update.html', context)
+
+def homepage(request):
+    return render(request, 'landingpage.html')
