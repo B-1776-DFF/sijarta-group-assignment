@@ -27,7 +27,7 @@ def login_view(request):
         if user:
             # Verify the password
             if (password != user[2]) != check_password(password, user[2]):
-                messages.error(request, "LOL.")
+                messages.error(request, "Incorrect Password!")
                 return render(request, 'login.html')
             
             user_id = user[0]  # Assuming this is the UUID
@@ -128,13 +128,13 @@ def register_worker_view(request):
             with connection.cursor() as cursor:
                 cursor.execute("""
                 SET search_path TO sijartagroupassignment;
-                INSERT INTO "USER" (name, pwd, sex, phonenum, dob, address) 
+                INSERT INTO "USER" (id, name, pwd, sex, phonenum, dob, address) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
                 """, [user_id, name, password, sex, phone, dob, address])
                 user_id = cursor.fetchone()[0]
 
                 cursor.execute("""
-                INSERT INTO WORKER (id, bank_name, acc_number, npwp, pic_url) 
+                INSERT INTO WORKER (id, bankname, accnumber, npwp, picurl) 
                 VALUES (%s, %s, %s, %s, %s);
                 """, [user_id, bank_name, acc_number, npwp, pic_url])
 
@@ -260,7 +260,32 @@ def profile_update_view(request):
         """, [user_id])
         user = cursor.fetchone()
 
-    context = {'user': user, 'role': role}
+        profile_data = {}
+        
+        if role == 'Worker':
+            cursor.execute("""
+            SELECT * FROM WORKER WHERE id = %s;
+            """, [user_id])
+            profile = cursor.fetchone()
+            profile_data = {
+                'bank_name': profile[1],
+                'acc_number': profile[2],
+                'npwp': profile[3],
+                'pic_url': profile[4]
+            }
+
+    context = {
+        'user': {
+            'id': user[0],
+            'name': user[1],
+            'sex': user[2],
+            'phone_num': user[3],
+            'dob': user[5],
+            'address': user[6]
+        },
+        'profile': profile_data,
+        'role': role
+    }
     return render(request, 'profile_update.html', context)
 
 def homepage(request):

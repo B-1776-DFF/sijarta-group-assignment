@@ -11,19 +11,32 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
                 {% if request.session.user_id %}
+                    {% if user.name %}
+                        <li class="nav-item">
+                            <span class="nav-link">Hello, {{ user.name }}</span>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <span class="nav-link">Hello, {{ user }}</span>
+                        </li>
+                    {% endif %}
                     <li class="nav-item">
                         <span class="nav-link">Role: {{ role }}</span>
                     </li>
                     {% if role == 'Customer' %}
-                        <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Profile</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Homepage</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'mypay:mypay' %}">MyPay</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">My Orders</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'discount' %}">Discount</a></li>
-                    {% elif role == 'Worker' %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Profile</a></li>
+                    {% elif role == 'Worker' %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Homepage</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'service_jobs' %}">Manage My Jobs</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'service_jobs_status' %}">Manage Order Status</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'mypay:mypay' %}">MyPay</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Profile</a></li>
+                    
+                    
                     {% endif %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
                 {% else %}
