@@ -8,13 +8,13 @@ Service Categories
 <div class="container my-5">
     <h1 class="text-center mb-4">Available Services</h1>
 
-    <!-- Search and Filter -->
+    <!-- Search and Filter Section -->
     <div class="row justify-content-center mb-3">
         <div class="col-md-3">
             <select id="categoryFilter" class="form-control" onchange="filterCategories()">
                 <option value="">All Categories</option>
-                {% for category in categories %}
-                    <option value="{{ category.name }}">{{ category.name }}</option>
+                {% for category_name, subcategories in categories.items %}
+                    <option value="{{ category_name }}">{{ category_name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -26,16 +26,16 @@ Service Categories
         </div>
     </div>
 
-    <!-- Categories and Subcategories -->
+    <!-- Categories and Subcategories Section -->
     <div id="categoriesContainer">
-        {% for category in categories %}
-            <div class="card mb-3">
-                <div class="card-header" onclick="toggleCategory('{{ category.name }}')" style="cursor:pointer;">
-                    <strong>{{ category.name }}</strong>
+        {% for category_name, subcategories in categories.items %}
+            <div class="card mb-3 category-card" data-category="{{ category_name }}">
+                <div class="card-header" onclick="toggleCategory('{{ category_name }}')" style="cursor:pointer;">
+                    <strong>{{ category_name }}</strong>
                 </div>
-                <ul class="list-group list-group-flush" id="category-{{ category.name }}" style="display: none;">
-                    {% for subcategory in category.subcategories.all %}
-                        <li class="list-group-item subcategory-item" data-category="{{ category.name }}" onclick="redirectToSubcategory('{{ subcategory.id }}')">
+                <ul class="list-group list-group-flush" id="category-{{ category_name }}" style="display: none;">
+                    {% for subcategory in subcategories %}
+                        <li class="list-group-item subcategory-item" data-category="{{ category_name }}" onclick="redirectToSubcategory('{{ subcategory.id }}')">
                             {{ subcategory.name }}
                         </li>
                     {% endfor %}
@@ -46,30 +46,70 @@ Service Categories
 </div>
 
 <script>
+    /**
+     * Filters categories and subcategories dynamically
+     */
     function filterCategories() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase();
+        const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+        const selectedCategory = document.getElementById('categoryFilter').value;
         const items = document.querySelectorAll('.subcategory-item');
+        const categoryCards = document.querySelectorAll('.category-card');
 
-        items.forEach(item => {
-            const matchesQuery = item.textContent.toLowerCase().includes(query);
-            const matchesCategory = categoryFilter === "" || item.getAttribute('data-category').toLowerCase() === categoryFilter;
+        let anyVisible = false; // To track if any category/subcategory is visible
 
-            if (matchesQuery && matchesCategory) {
-                item.style.display = 'block';
+        // Loop through each category card and decide whether to show or hide it
+        categoryCards.forEach(card => {
+            const categoryName = card.getAttribute('data-category');
+            const subcategories = card.querySelectorAll('.subcategory-item');
+            
+            let categoryVisible = false; // To track if at least one subcategory is visible
+
+            // Check subcategories for each category
+            subcategories.forEach(item => {
+                const matchesSearch = item.textContent.toLowerCase().includes(searchQuery);
+                const matchesCategory = selectedCategory === "" || categoryName === selectedCategory;
+
+                if (matchesSearch && matchesCategory) {
+                    item.style.display = 'block';
+                    categoryVisible = true; // At least one subcategory is visible
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Show or hide the entire category card based on subcategories
+            if (categoryVisible) {
+                card.style.display = 'block';
+                anyVisible = true;
             } else {
-                item.style.display = 'none';
+                card.style.display = 'none';
+            }
+
+            // Also, if no category is selected, show all categories
+            if (selectedCategory === "") {
+                card.style.display = 'block'; // Show all category cards
             }
         });
+
+        // If no items are visible, you could optionally add logic to display a "No results" message or similar
+        if (!anyVisible) {
+            console.log("No matching categories or subcategories found");
+        }
     }
 
+    /**
+     * Toggles the visibility of a category's subcategories
+     */
     function toggleCategory(categoryName) {
         const categoryElement = document.getElementById('category-' + categoryName);
         categoryElement.style.display = (categoryElement.style.display === 'none') ? 'block' : 'none';
     }
 
+    /**
+     * Redirects to a specific subcategory page based on the user's authentication status
+     */
     function redirectToSubcategory(subcategoryId) {
-        const userType = '{{ request.user.is_authenticated }}' ? 'user' : 'worker';
+        const userType = '{{ request.user.is_authenticated|yesno:"user,worker" }}';
         window.location.href = `/subcategory/${subcategoryId}/${userType}/`;
     }
 </script>
