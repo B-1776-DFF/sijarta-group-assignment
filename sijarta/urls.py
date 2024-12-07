@@ -23,5 +23,5 @@ urlpatterns = [
     path('mypay/', include('mypay.urls')),
     path('service_jobs/', include('service_jobs.urls')),
     path('discount/', include('discount.urls')),
-    path('aaf/', include('aaf.urls')),
+    path('', include('aaf.urls')),
 ]
