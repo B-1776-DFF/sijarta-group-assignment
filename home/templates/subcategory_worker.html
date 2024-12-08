@@ -1,141 +1,101 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ subcategory_name }} - Worker View</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 80%;
-            margin: auto;
-            padding: 20px;
-        }
-        .service-session, .worker-card {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin: 10px 0;
-        }
-        .worker-card img {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-        }
-        .worker-grid {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .join-btn {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-        }
-        .join-btn.disabled {
-            background-color: grey;
-            cursor: not-allowed;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>{{ subcategory_name }}</h1>
-        <p>{{ description }}</p>
+{% extends 'baseaaf.html' %}
 
-        <!-- Service Sessions -->
-        <h3>Service Session Options</h3>
-        {% for session in service_sessions %}
-        <div class="service-session">
-            <span>{{ session.session_name }}</span>  <!-- session name -->
-            <span>Price: ${{ session.price }}</span>  <!-- session price -->
-            <button onclick="bookService({{ session.session_id }})">Book Service</button>  <!-- session id -->
+{% block title %}
+    {{ subcategory_name }} - Workers
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Subcategory Header Section -->
+    <div class="row mb-4">
+        <div class="col-6">
+            <h1>{{ subcategory_name }}</h1>
+            <p>{{ description }}</p>
         </div>
-        {% endfor %}
+        <div class="col-6 text-end">
+            <p><strong>Category:</strong> {{ category_name }}</p>  <!-- Ensure category_name is passed -->
+        </div>
+    </div>
 
-        <!-- Workers Section -->
-        <h3>Available Workers</h3>
-        <div class="worker-grid">
+    <!-- Service Session Options -->
+    <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
+        <h5>Service Sessions</h5>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Service Session</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions %}
+                <tr>
+                    <td>{{ session.0 }}</td>  <!-- session_name -->
+                    <td>${{ session.1|floatformat:2 }}</td>  <!-- session_price -->
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2">No service sessions available for this subcategory.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Available Workers Section -->
+    <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
+        <h5>Available Workers</h5>
+        <div class="row">
             {% for worker in workers %}
-            <div class="worker-card">
-                <img src="{{ worker.profile_picture }}" alt="Profile Picture">
-                <h4>{{ worker.worker_name }}</h4>
-                <p>{{ worker.worker_rate }}</p>
-                <a href="{% url 'worker_profile' worker.worker_id %}" class="btn btn-primary">View Profile</a>
+            <div class="col-lg-3 col-md-4 col-sm-6 col-12 mb-4">
+                <div class="card shadow-sm text-center">
+                    <img src="{{ worker.2 }}" alt="Worker {{ forloop.counter }}" class="card-img-top img-fluid rounded-circle mx-auto mt-3" style="width: 80px; height: 80px; object-fit: cover;">
+                    <div class="card-body">
+                        <h6 class="card-title">{{ worker.1 }}</h6>  <!-- worker_name -->
+                        <p class="card-text">Rate: ${{ worker.3|floatformat:2 }}</p>  <!-- worker_rate -->
+                        <p class="card-text">Total Orders: {{ worker.4 }}</p>  <!-- Total Orders -->
+                        <a href="#" class="btn btn-outline-primary btn-sm">View Profile</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">No workers available for this subcategory.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Join Button for Workers -->
+    {% if user_is_worker %}
+        <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
+            {% if user_is_joined %}
+                <p>You are already part of this service category.</p>
+            {% else %}
+                <form method="post" action="{% url 'join_service_category' subcategory_id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Join This Service Category</button>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Testimonials Section -->
+    <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
+        <h5>Testimonials</h5>
+        {% if testimonials %}
+        <div class="list-group">
+            {% for testimonial in testimonials %}
+            <div class="list-group-item">
+                <h6>{{ testimonial.0 }} <small class="text-muted">({{ testimonial.1 }})</small></h6>
+                <p>{{ testimonial.2 }}</p>
+                <p><strong>Rating:</strong> {{ testimonial.3 }}/5</p>
             </div>
             {% endfor %}
         </div>
-
-        <!-- Join Button for Workers -->
-        <div>
-            {% if user_is_worker %}
-            <button class="join-btn {% if worker_is_joined %}disabled{% endif %}" {% if worker_is_joined %}disabled{% endif %} onclick="joinCategory()">
-                {% if worker_is_joined %}Already Joined{% else %}Join this Subcategory{% endif %}
-            </button>
-            {% endif %}
-        </div>
-
-        <!-- Testimonials -->
-        <h3>Testimonials</h3>
-        {% for testimonial in testimonials %}
-        <div>
-            <strong>{{ testimonial.username }}:</strong>
-            <p>{{ testimonial.testimonial_text }}</p>
-            <small>Rating: {{ testimonial.rating }}</small>
-        </div>
-        {% endfor %}
+        {% else %}
+        <p>No testimonials available for this service category.</p>
+        {% endif %}
     </div>
 
-    <script>
-        function bookService(sessionId) {
-            fetch(`/book-service/${sessionId}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Booking successful! Your booking ID is: ' + data.booking_id);
-                } else {
-                    alert('Booking failed: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while booking. Please try again later.');
-            });
-        }
-
-        function joinCategory() {
-            fetch(`/join-category/{{ subcategory_id }}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('You have successfully joined the subcategory!');
-                    location.reload();  // Reload page to reflect the change
-                } else {
-                    alert('Failed to join: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again later.');
-            });
-        }
-    </script>
-</body>
-</html>
+</div>
+{% endblock %}

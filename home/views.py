@@ -30,9 +30,6 @@ def homepage(request):
     return render(request, "homepage.html", {"categories": categories})
 
 
-from django.db import connection
-from django.shortcuts import render
-
 def subcategory_user(request, subcategory_id):
     # Fetch subcategory details (name and description)
     query_subcategory = """
@@ -108,8 +105,11 @@ def subcategory_user(request, subcategory_id):
 
 
 def subcategory_worker(request, subcategory_id):
-    # Check if the user is associated with the worker table
+    # Initialize the user_is_worker flag and worker variable
     user_is_worker = False
+    worker = None
+
+    # Check if the user is authenticated and if they are a worker
     if request.user.is_authenticated:
         query_worker = """
         SELECT id 
@@ -121,45 +121,72 @@ def subcategory_worker(request, subcategory_id):
             worker = cursor.fetchone()
             user_is_worker = worker is not None
 
-    if user_is_worker:
-        # Worker-specific logic
-        query_subcategory = """
-        SELECT id, subcategoryname, description 
-        FROM sijartagroupassignment.service_subcategory 
-        WHERE id = %s;
-        """
-        with connection.cursor() as cursor:
-            cursor.execute(query_subcategory, [str(subcategory_id)])
-            subcategory = cursor.fetchone()
+    # Fetch subcategory info
+    query_subcategory = """
+    SELECT id, subcategoryname, description 
+    FROM sijartagroupassignment.service_subcategory 
+    WHERE id = %s;
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(query_subcategory, [str(subcategory_id)])
+        subcategory = cursor.fetchone()
 
-        if not subcategory:
-            return render(request, '404.html')  # Handle non-existing subcategory
+    if not subcategory:
+        return render(request, '404.html')  # Handle non-existing subcategory
 
-        subcategory_name, description = subcategory[1], subcategory[2]
-
-        # Fetch sessions for the worker
-        query_sessions = """
-        SELECT ss.id AS session_id, ss.session_name, ss.price 
+    subcategory_name, description = subcategory[1], subcategory[2]
+    
+    # Fetch sessions for the subcategory
+    query_sessions = """
+        SELECT ss.session AS session_number, 
+            ss.price AS session_price
         FROM sijartagroupassignment.service_session ss
-        JOIN sijartagroupassignment.worker_service_category wsc
-            ON ss.subcategory_id = wsc.subcategory_id
-        WHERE wsc.worker_id = %s AND ss.subcategory_id = %s;
+        WHERE ss.subcategoryid = %s;
+        """
+    with connection.cursor() as cursor:
+        cursor.execute(query_sessions, [str(subcategory_id)])
+        sessions = cursor.fetchall()
+
+    # Fetch available workers for this subcategory along with the worker's name from the user table
+    query_workers = """
+    SELECT w.id, u.name AS worker_name, w.picurl, w.rate AS worker_rate
+    FROM sijartagroupassignment.worker w
+    JOIN sijartagroupassignment.worker_service_category wsc
+        ON w.id = wsc.workerid
+    JOIN sijartagroupassignment."USER" u ON w.id = u.id  -- Join USER table to get the worker's name
+    JOIN sijartagroupassignment.service_category sc 
+        ON wsc.servicecategoryid = sc.id
+    JOIN sijartagroupassignment.service_subcategory ss 
+        ON sc.id = ss.servicecategoryid  
+    WHERE ss.id = %s;  -- Filter by subcategory ID
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query_workers, [str(subcategory_id)])
+        workers = cursor.fetchall()
+
+    # Check if the current worker is already joined to this subcategory
+    user_is_joined = False
+    if user_is_worker and worker:
+        query_check_join = """
+        SELECT 1 
+        FROM sijartagroupassignment.worker_service_category 
+        WHERE workerid = %s AND subcategory_id = %s;
         """
         with connection.cursor() as cursor:
-            cursor.execute(query_sessions, [worker[0], str(subcategory_id)])
-            sessions = cursor.fetchall()
+            cursor.execute(query_check_join, [worker[0], str(subcategory_id)])
+            user_is_joined = cursor.fetchone() is not None
 
-        # Render the worker-specific page
-        return render(request, 'subcategory_worker.html', {
-            'subcategory_name': subcategory_name,
-            'description': description,
-            'sessions': sessions,
-            'subcategory_id': subcategory_id,
-        })
-
-    # If not a worker, redirect to the customer page
-    return redirect('/subcategory/{}/user/'.format(subcategory_id))
-
+    # Render the page with all the necessary data
+    return render(request, 'subcategory_worker.html', {
+        'subcategory_name': subcategory_name,
+        'description': description,
+        'sessions': sessions,
+        'workers': workers,
+        'subcategory_id': subcategory_id,
+        'user_is_worker': user_is_worker,
+        'user_is_joined': user_is_joined,
+    })
 
 def book_service (request, session_id):
     pass
