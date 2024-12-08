@@ -79,23 +79,5 @@
         </div>
     {% endif %}
 
-    <!-- Testimonials Section -->
-    <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
-        <h5>Testimonials</h5>
-        {% if testimonials %}
-        <div class="list-group">
-            {% for testimonial in testimonials %}
-            <div class="list-group-item">
-                <h6>{{ testimonial.0 }} <small class="text-muted">({{ testimonial.1 }})</small></h6>
-                <p>{{ testimonial.2 }}</p>
-                <p><strong>Rating:</strong> {{ testimonial.3 }}/5</p>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p>No testimonials available for this service category.</p>
-        {% endif %}
-    </div>
-
 </div>
 {% endblock %}
