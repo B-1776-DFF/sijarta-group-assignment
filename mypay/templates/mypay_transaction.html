@@ -1,92 +1,147 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block content %}
 <!-- Modal -->
 <div id="transactionModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="relative bg-white rounded-lg p-8 shadow-lg w-1/2 border-4 border-pink-100">
-        <h2 class="text-2xl font-bold mb-4 text-pink-600">Perform Transaction</h2>
-        <select id="transactionType" class="mb-4 p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
-            <option value="topup">TopUp MyPay</option>
-            <option value="service">Service Payment</option>
-            <option value="transfer">Transfer MyPay</option>
-            <option value="withdrawal">Withdrawal</option>
-        </select>
-        <div id="transactionForm">
-            <!-- Dynamic form fields will be inserted here -->
-        </div>
-        <div class="flex justify-end mt-4">
-            <button id="closeModalBtn" class="bg-gray-200 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-lg transition-transform transform hover:scale-105">Close</button>
-            <button class="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-md shadow-lg ml-2 transition-transform transform hover:scale-105">Submit</button>
-        </div>
+        <button onclick="toggleModal()" class="absolute top-2 right-2 text-gray-600 hover:text-gray-800">
+            &times;
+        </button>
+        <h2 class="text-2xl font-bold mb-4 text-pink-600">New Transaction</h2>
+
+        <form id="transactionForm" method="POST">
+            {% csrf_token %}
+
+            <!-- Transaction Type Selection -->
+            <div class="mb-4">
+                <label for="transactionType" class="block mb-2 text-pink-600">Transaction Type</label>
+                <select id="transactionType" name="transactionType" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
+                    <option value="topUp">Top-Up MyPay</option>
+                    <option value="servicePayment">Service Payment</option>
+                    <option value="transfer">Transfer MyPay</option>
+                    <option value="withdrawal">Withdrawal</option>
+                </select>
+            </div>
+
+            <!-- Dynamic Fields for Transaction Types -->
+            <!-- Top-Up Fields -->
+            <div id="topUpFields" class="transaction-fields mb-4">
+                <label for="topUpAmount" class="block mb-2 text-pink-600">Top-Up Amount</label>
+                <input type="number" id="topUpAmount" name="topUpAmount" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" placeholder="Enter amount">
+            </div>
+
+            <!-- Service Payment Fields -->
+            <div id="servicePaymentFields" class="transaction-fields hidden mb-4">
+                <label for="serviceSessionId" class="block mb-2 text-pink-600">Service Session</label>
+                <select id="serviceSessionId" name="serviceSessionId" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
+                    <option value="">Select Service Session</option>
+                    <option value="service1">Service 1</option>
+                    <option value="service2">Service 2</option>
+                </select>
+                <label for="servicePrice" class="block mb-2 text-pink-600 mt-4">Service Price</label>
+                <input type="text" id="servicePrice" name="servicePrice" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" value="$100" disabled>
+            </div>
+
+            <!-- Transfer Fields -->
+            <div id="transferFields" class="transaction-fields hidden mb-4">
+                <label for="recipientPhone" class="block mb-2 text-pink-600">Recipient's Phone Number</label>
+                <input type="tel" id="recipientPhone" name="recipientPhone" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" placeholder="Enter phone number">
+                <label for="transferAmount" class="block mb-2 text-pink-600 mt-4">Transfer Amount</label>
+                <input type="number" id="transferAmount" name="transferAmount" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" placeholder="Enter amount">
+            </div>
+
+            <!-- Withdrawal Fields -->
+            <div id="withdrawalFields" class="transaction-fields hidden mb-4">
+                <label for="bankName" class="block mb-2 text-pink-600">Bank Name</label>
+                <select id="bankName" name="bankName" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
+                    <option>Select Bank</option>
+                    <option value="GoPay">GoPay</option>
+                    <option value="OVO">OVO</option>
+                    <option value="Virtual Account BCA">Virtual Account BCA</option>
+                    <option value="BNI">BNI</option>
+                    <option value="Mandiri">Mandiri</option>
+                </select>
+                <label for="bankAccountNumber" class="block mb-2 text-pink-600 mt-4">Bank Account Number</label>
+                <input type="text" id="bankAccountNumber" name="bankAccountNumber" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" placeholder="Enter account number">
+                <label for="withdrawalAmount" class="block mb-2 text-pink-600 mt-4">Withdrawal Amount</label>
+                <input type="number" id="withdrawalAmount" name="withdrawalAmount" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" placeholder="Enter amount">
+            </div>
+
+            <!-- Submit and Close Buttons -->
+            <div class="flex justify-end mt-4">
+                <button type="button" onclick="toggleModal()" class="bg-gray-200 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-lg transition-transform transform hover:scale-105">
+                    Close
+                </button>
+                <button type="submit" class="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-md shadow-lg ml-2 transition-transform transform hover:scale-105">
+                    Confirm Transaction
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
-    document.getElementById('transactionType').addEventListener('change', function() {
-        const transactionForm = document.getElementById('transactionForm');
-        const selectedType = this.value;
-        let formContent = '';
+    // Toggle the modal visibility
+    function toggleModal() {
+        const transactionModal = document.getElementById('transactionModal');
+        transactionModal.classList.toggle('hidden');
+    }
 
-        switch (selectedType) {
-            case 'topup':
-                formContent = `
-                    <label for="topupAmount" class="block mb-2 text-pink-600">Top-Up Amount</label>
-                    <input type="number" id="topupAmount" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter amount">
-                `;
+    const transactionType = document.getElementById('transactionType');
+    const topUpFields = document.getElementById('topUpFields');
+    const servicePaymentFields = document.getElementById('servicePaymentFields');
+    const transferFields = document.getElementById('transferFields');
+    const withdrawalFields = document.getElementById('withdrawalFields');
+
+    function updateFormFields() {
+        topUpFields.classList.add('hidden');
+        servicePaymentFields.classList.add('hidden');
+        transferFields.classList.add('hidden');
+        withdrawalFields.classList.add('hidden');
+
+        switch (transactionType.value) {
+            case 'topUp':
+                topUpFields.classList.remove('hidden');
                 break;
-            case 'service':
-                formContent = `
-                    <label for="serviceSession" class="block mb-2 text-pink-600">Service Session Selection</label>
-                    <select id="serviceSession" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
-                        <!-- Options should be dynamically generated from backend -->
-                    </select>
-                    <label for="servicePrice" class="block mt-4 mb-2 text-pink-600">Service Price</label>
-                    <input type="text" id="servicePrice" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" readonly>
-                `;
+            case 'servicePayment':
+                servicePaymentFields.classList.remove('hidden');
                 break;
             case 'transfer':
-                formContent = `
-                    <label for="recipientPhone" class="block mb-2 text-pink-600">Recipient's Phone Number</label>
-                    <input type="text" id="recipientPhone" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter phone number">
-                    <label for="transferAmount" class="block mt-4 mb-2 text-pink-600">Transfer Amount</label>
-                    <input type="number" id="transferAmount" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter amount">
-                `;
+                transferFields.classList.remove('hidden');
                 break;
             case 'withdrawal':
-                formContent = `
-                    <label for="bankName" class="block mb-2 text-pink-600">Bank Name</label>
-                    <select id="bankName" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
-                        <option value="gopay">GoPay</option>
-                        <option value="ovo">OVO</option>
-                        <option value="bca">BCA</option>
-                        <option value="bni">BNI</option>
-                        <option value="mandiri">Mandiri</option>
-                    </select>
-                    <label for="bankAccountNumber" class="block mt-4 mb-2 text-pink-600">Bank Account Number</label>
-                    <input type="text" id="bankAccountNumber" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter account number">
-                    <label for="withdrawalAmount" class="block mt-4 mb-2 text-pink-600">Withdrawal Amount</label>
-                    <input type="number" id="withdrawalAmount" class="p-2 border rounded-md w-full bg-gray-100 focus:border-pink-500" placeholder="Enter amount">
-                `;
+                withdrawalFields.classList.remove('hidden');
                 break;
         }
+    }
 
-        transactionForm.innerHTML = formContent;
-    });
+    transactionType.addEventListener('change', updateFormFields);
+    updateFormFields(); // Initialize on load
 
-    // Trigger change event to load initial form state
-    document.getElementById('transactionType').dispatchEvent(new Event('change'));
+    // Handle form submission via AJAX
+    const form = document.getElementById('transactionForm');
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
 
-    // Modal functionality
-    document.getElementById('closeModalBtn').addEventListener('click', function() {
-        document.getElementById('transactionModal').classList.add('hidden');
-    });
-
-    // Close modal when clicking outside of it
-    document.getElementById('transactionModal').addEventListener('click', function(event) {
-        if (event.target === this) {
-            this.classList.add('hidden');
-        }
+        const formData = new FormData(form);
+        fetch("{% url 'mypay:transaction' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                // Optionally, update the balance and transaction history dynamically
+                location.reload(); // Reload the page to reflect changes
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
     });
 </script>
 {% endblock %}
