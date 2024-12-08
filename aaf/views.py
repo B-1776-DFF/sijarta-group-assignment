@@ -50,7 +50,7 @@ def login_view(request):
                     request.session['user_role'] = 'Customer'
 
             print("User role set:", request.session['user_role'])  # Debug log
-            return redirect('profile')
+            return redirect('homepage')
 
         messages.error(request, "Invalid phone number or password.")
     return render(request, 'login.html')
