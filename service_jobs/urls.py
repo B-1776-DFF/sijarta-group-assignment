@@ -1,6 +1,6 @@
 from django.urls import path
-from service_jobs.views import service_jobs, service_jobs_status
+from service_jobs.views import *
 urlpatterns = [
     path('', service_jobs, name='service_jobs'),
-    path('status/', service_jobs_status, name='service_jobs_status'),
+    path('accept_job', accept_job, name='accept_job'),
 ]

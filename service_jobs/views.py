@@ -1,62 +1,93 @@
 from django.shortcuts import render
+from django.db import connection
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime
 import json
 
-# Dummy data for service_jobs
-service_orders = [
-    {"id": 1, "title": "Home Cleaning", "address": "123 Main St, Anytown", "date": "2023-06-15", "time": "14:00", "status": "Looking for Nearby Worker", "subcategory": "Deep Cleaning", "user_id": 1},
-    {"id": 2, "title": "Lawn Mowing", "address": "456 Elm St, Somewhere", "date": "2023-06-16", "time": "10:00", "status": "Assigned", "subcategory": "Grass Cutting", "user_id": 2},
-    {"id": 3, "title": "Home Cleaning", "address": "789 Oak St, Nowhere", "date": "2023-06-17", "time": "09:00", "status": "Looking for Nearby Worker", "subcategory": "Regular Cleaning", "user_id": 1},
-    {"id": 4, "title": "Window Washing", "address": "321 Pine St, Everywhere", "date": "2023-06-18", "time": "11:00", "status": "Looking for Nearby Worker", "subcategory": "Exterior", "user_id": 3},
-    {"id": 5, "title": "Home Cleaning", "address": "654 Birch St, Anywhere", "date": "2023-06-19", "time": "13:00", "status": "Completed", "subcategory": "Deep Cleaning", "user_id": 1},
-]
-
-# Dummy data for service_jobs_status
-service_jobs_status_orders = [
-    {"id": 1, "title": "Home Cleaning", "address": "123 Main St, Anytown", "date": "2023-06-15", "time": "14:00", "status": "Waiting for Worker to Depart", "subcategory": "Deep Cleaning", "user_id": 1},
-    {"id": 2, "title": "Lawn Mowing", "address": "456 Elm St, Somewhere", "date": "2023-06-16", "time": "10:00", "status": "Assigned", "subcategory": "Grass Cutting", "user_id": 1},
-    {"id": 3, "title": "Window Washing", "address": "321 Pine St, Everywhere", "date": "2023-06-18", "time": "11:00", "status": "Worker Arrived at Location", "subcategory": "Exterior", "user_id": 1},
-    {"id": 4, "title": "Home Cleaning", "address": "654 Birch St, Anywhere", "date": "2023-06-19", "time": "13:00", "status": "Service in Progress", "subcategory": "Deep Cleaning", "user_id": 1},
-]
-
-categories = {
-    "Home Cleaning": ["Deep Cleaning", "Regular Cleaning"],
-    "Lawn Mowing": ["Grass Cutting", "Edging"],
-    "Window Washing": ["Interior", "Exterior"]
-}
-
 def service_jobs(request):
-    selected_category = request.GET.get("category", "All")
-    selected_subcategory = request.GET.get("subcategory", "All")
-    
-    filtered_orders = service_orders
+    worker_id = '26b7d02c-6d45-4630-a848-e8a84494eeeb'
+
+    # Fetch service categories for the worker
+    category_query = """
+    SET search_path TO sijartagroupassignment;
+    SELECT wsc.serviceCategoryId, sc.CategoryName
+    FROM worker_service_category AS wsc
+    LEFT JOIN service_category AS sc ON wsc.serviceCategoryId = sc.Id
+    WHERE wsc.workerId = %s
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(category_query, [worker_id])
+        worker_service_categories = cursor.fetchall()
+
+    selected_category = request.GET.get('category', 'All')
+    selected_subcategory = request.GET.get('subcategory', 'All')
+
+    # Fetch subcategories based on the selected category
+    subcategory_query = """
+    SET search_path TO sijartagroupassignment;
+    SELECT subcategory.id::text, subcategory.SubcategoryName, subcategory.ServiceCategoryId::text
+    FROM service_subcategory AS subcategory
+    WHERE (%s = 'All' OR subcategory.ServiceCategoryId::text = %s)
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(subcategory_query, [selected_category, selected_category])
+        subcategories = cursor.fetchall()
+
+    # Fetch service orders
+    order_query = """
+    SET search_path TO sijartagroupassignment;
+    SELECT tso.Id, tso.serviceCategoryId::text, sc.CategoryName, tso.orderDate, tso.TotalPrice, tso.serviceTime,
+        os.Status AS order_status, ss.Session, ss.Price
+    FROM tr_service_order AS tso
+    LEFT JOIN tr_order_status AS tos ON tso.Id = tos.serviceTrId
+    LEFT JOIN order_status AS os ON tos.statusId = os.Id
+    LEFT JOIN service_session ss ON tso.serviceCategoryId = ss.SubcategoryId AND tso.Session = ss.Session
+    LEFT JOIN service_subcategory sub ON ss.SubcategoryId = sub.Id
+    LEFT JOIN service_category sc ON sub.ServiceCategoryId = sc.Id
+    WHERE tso.workerId = %s
+    AND os.Status = 'Looking for Nearby Worker'
+    AND tos.date = (
+        SELECT MAX(date)
+        FROM tr_order_status
+        WHERE serviceTrId = tso.Id
+    )
+    """
+    query_params = [worker_id]
     if selected_category != "All":
-        filtered_orders = [order for order in filtered_orders if order["title"] == selected_category]
-        if selected_subcategory != "All":
-            filtered_orders = [order for order in filtered_orders if order["subcategory"] == selected_subcategory]
-    
+        order_query += " AND sub.ServiceCategoryId = %s"
+        query_params.append(selected_category)
+    if selected_subcategory != "All":
+        order_query += " AND ss.SubcategoryId = %s"
+        query_params.append(selected_subcategory)
+
+    with connection.cursor() as cursor:
+        cursor.execute(order_query, query_params)
+        orders = cursor.fetchall()
+
     return render(request, 'service_job.html', {
-        'service_orders': filtered_orders,
+        'orders': orders,
+        'subcategories': subcategories,
+        'worker_service_categories': worker_service_categories,
         'selected_category': selected_category,
         'selected_subcategory': selected_subcategory,
-        'categories': categories
     })
 
-def service_jobs_status(request):
-    user_id = request.user.id  # Assuming you have user authentication and can get the user ID
-    selected_category = request.GET.get("category", "All")
-    selected_subcategory = request.GET.get("subcategory", "All")
-    
-    filtered_orders = [order for order in service_jobs_status_orders if order["user_id"] == user_id]
-    if selected_category != "All":
-        filtered_orders = [order for order in filtered_orders if order["title"] == selected_category]
-        if selected_subcategory != "All":
-            filtered_orders = [order for order in filtered_orders if order["subcategory"] == selected_subcategory]
-    
-    return render(request, 'service_job_status.html', {
-        'service_orders': filtered_orders,
-        'selected_category': selected_category,
-        'selected_subcategory': selected_subcategory,
-        'categories': categories
-    })
+def accept_job(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            order_id = data.get('order_id')
+            worker_id = '26b7d02c-6d45-4630-a848-e8a84494eeeb'
+            update_status_query = """
+            SET search_path TO sijartagroupassignment;
+            INSERT INTO tr_order_status (serviceTrId, statusId, date)
+            VALUES (%s, (
+                SELECT Id FROM order_status WHERE Status = 'Accepted'
+            ), %s)
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(update_status_query, [order_id, datetime.now()])
+            return JsonResponse({"success": True, "message": "Job accepted successfully."})
+        except Exception as e:
+            return JsonResponse({"success": False, "message": str(e)})
+    return JsonResponse({"success": False, "message": "Invalid request method."})
