@@ -59,7 +59,7 @@
                         <h6 class="card-title">{{ worker.0 }}</h6>
                         <p class="card-text">Rate: ${{ worker.2|floatformat:2 }}</p>
                         <p class="card-text">Total Orders: {{ worker.3 }}</p>
-                        <a href="#" class="btn btn-outline-primary btn-sm">View Profile</a>
+                        <a href="{% url 'worker_profile' worker.4 %}" class="btn btn-outline-primary btn-sm">View Profile</a>
                     </div>
                 </div>
             </div>
