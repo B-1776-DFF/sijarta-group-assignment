@@ -1,0 +1,29 @@
+{% extends 'baseaaf.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg border-0 rounded-lg overflow-hidden">
+        <div class="row g-0">
+            <!-- Profile Picture Section -->
+            <div class="col-md-4 bg-gradient-to-br from-pink-500 to-blue-500 d-flex flex-column align-items-center justify-content-center p-4 text-white">
+                <img src="{{ worker.pic_url }}" alt="Profile Picture" class="profile-img mb-3">
+                <h3 class="fw-bold">{{ worker.name }}</h3>
+                <p class="mb-0">Rate: ${{ worker.rate|floatformat:2 }}</p>
+                <p class="mb-0">Total Orders: {{ worker.total_finish_order }}</p>
+            </div>
+
+            <!-- Profile Info Section -->
+            <div class="col-md-8 p-4 bg-white">
+                <h5 class="fw-bold">Personal Information</h5>
+                <p><strong>Sex:</strong> {{ worker.sex }}</p>
+                <p><strong>Phone Number:</strong> {{ worker.phone_num }}</p>
+                <p><strong>Date of Birth:</strong> {{ worker.dob }}</p>
+                <p><strong>Address:</strong> {{ worker.address }}</p>
+                <p><strong>Rate:</strong> {{ worker.rate|floatformat:2 }}/10</p>
+                <p><strong>Total Orders:</strong> {{ worker.total_finish_order }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

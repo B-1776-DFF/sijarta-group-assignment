@@ -68,7 +68,8 @@ def subcategory_user(request, subcategory_id):
             u.name AS worker_name,  -- Fetch worker's name from the USER table
             w.picurl AS profile_picture, 
             w.rate AS worker_rate, 
-            w.totalfinishorder AS completed_orders
+            w.totalfinishorder AS completed_orders,
+            w.id AS worker_id  -- Include worker_id for profile link
         FROM sijartagroupassignment.worker w
         JOIN sijartagroupassignment."USER" u
             ON w.id = u.id  -- Join on the worker ID to get the worker's name
@@ -190,3 +191,37 @@ def subcategory_worker(request, subcategory_id):
 
 def book_service (request, session_id):
     pass
+
+def my_orders(request):
+    return request(request, 'myorder.html')
+
+def worker_profile_view(request, worker_id):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+        SET search_path TO sijartagroupassignment;
+        SELECT u.name, u.sex, u.phonenum, u.dob, u.address, w.bankname, w.accnumber, w.npwp, w.picurl, w.rate, w.totalfinishorder
+        FROM "USER" u
+        JOIN WORKER w ON u.id = w.id
+        WHERE u.id = %s;
+        """, [worker_id])
+        worker = cursor.fetchone()
+
+    if not worker:
+        return render(request, '404.html')  # Handle non-existing worker
+
+    context = {
+        'worker': {
+            'name': worker[0],
+            'sex': worker[1],
+            'phone_num': worker[2],
+            'dob': worker[3],
+            'address': worker[4],
+            'bank_name': worker[5],
+            'acc_number': worker[6],
+            'npwp': worker[7],
+            'pic_url': worker[8],
+            'rate': worker[9],
+            'total_finish_order': worker[10]
+        }
+    }
+    return render(request, 'worker_profile.html', context)
