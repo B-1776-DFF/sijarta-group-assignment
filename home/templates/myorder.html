@@ -1,0 +1,59 @@
+{% extends 'baseaaf.html' %}
+
+{% block title %}
+Service Categories
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h3 class="text-center">Your Service Orders</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Order ID</th>
+                    <th>Service Name</th>
+                    <th>Order Status</th>
+                    <th>Order Date</th>
+                    <th>Total Payment</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in service_orders %}
+                <tr>
+                    <td>{{ order.id }}</td>
+                    <td>{{ order.service_name }}</td>
+                    <td>{{ order.status }}</td>
+                    <td>{{ order.order_date }}</td>
+                    <td>Rp {{ order.total_payment|floatformat:2 }}</td>
+                    <td>
+                        {% if order.status == "Waiting for Payment" or order.status == "Searching for Nearest Workers" %}
+                            <button class="btn btn-danger btn-sm" onclick="cancelOrder({{ order.id }})">Cancel Order</button>
+                        {% elif order.status == "Order Completed" and not order.has_testimonial %}
+                            <button class="btn btn-primary btn-sm" onclick="createTestimonial({{ order.id }})">Create Testimonial</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No orders found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function cancelOrder(orderId) {
+        if (confirm("Are you sure you want to cancel this order?")) {
+            window.location.href = `{% url 'cancel_service_order' %}?order_id=${orderId}`;
+        }
+    }
+
+    function createTestimonial(orderId) {
+        window.location.href = `{% url 'create_testimonial' %}?order_id=${orderId}`;
+    }
+</script>
+{% endblock %}
