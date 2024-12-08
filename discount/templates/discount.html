@@ -48,7 +48,9 @@
                             <td>
                                 <button class="btn btn-primary buy-button" 
                                         data-code="{{ voucher.0 }}" 
-                                        data-price="{{ voucher.5 }}">
+                                        data-price="{{ voucher.5 }}" 
+                                        data-valid-days="{{ voucher.3 }}"
+                                        data-quota="{{ voucher.4 }}">
                                     Buy
                                 </button>
                             </td>
@@ -97,7 +99,7 @@
                             <label for="paymentOption" class="form-label">Payment Option</label>
                             <select class="form-select" id="paymentOption">
                                 {% for method in payment_methods %}
-                                    <option value="{{ method.0 }}">{{ method.0 }}</option>  <!-- Assuming 'name' is in the first index of method -->
+                                    <option value="{{ method.0 }}">{{ method.0 }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -114,15 +116,14 @@
     <!-- Success Modal -->
     <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true" data-bs-backdrop="false">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content text-center">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="successModalLabel">Purchase Successful</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title w-100" id="successModalLabel">Success</h5>
                 </div>
                 <div class="modal-body">
-                    Your voucher has been successfully purchased!
+                    <p id="successMessage"></p>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -132,22 +133,21 @@
     <!-- Failure Modal -->
     <div class="modal fade" id="failureModal" tabindex="-1" aria-labelledby="failureModalLabel" aria-hidden="true" data-bs-backdrop="false">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content text-center">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="failureModalLabel">Purchase Failed</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title w-100 text-danger" id="failureModalLabel">Failed</h5>
                 </div>
                 <div class="modal-body">
-                    Insufficient balance in your MyPay account. Please top up and try again.
+                    <p class="mb-0">Sorry, your balance is not enough to buy this voucher.</p>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS and Popper.js (required for modal functionality) -->
+    <!-- Bootstrap JS and Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 
@@ -157,17 +157,10 @@
             button.addEventListener('click', () => {
                 const code = button.dataset.code;
                 const price = parseFloat(button.dataset.price);
+                const validDays = parseInt(button.dataset.validDays);
+                const quota = button.dataset.quota;
 
-                // Close any open modals before showing the payment modal
-                const allModals = document.querySelectorAll('.modal');
-                allModals.forEach(modal => {
-                    const bootstrapModal = bootstrap.Modal.getInstance(modal);
-                    if (bootstrapModal) {
-                        bootstrapModal.hide();
-                    }
-                });
-
-                // Open the payment selection modal
+                // Show the payment modal
                 const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
                 paymentModal.show();
 
@@ -176,43 +169,43 @@
                     const paymentOption = document.getElementById('paymentOption').value;
 
                     if (paymentOption === 'MyPay') {
-                        // Make an AJAX request to get the user's balance from the backend
                         fetch('get_user_balance/')
                             .then(response => response.json())
                             .then(data => {
-                                const userBalance = data.balance; // Get the balance from the response
-                                const price = parseFloat(document.querySelector('.buy-button').dataset.price); // Get voucher price
+                                const userBalance = data.balance;
 
-                                // Check if user has enough balance
-                                if (userBalance !== null && userBalance >= price) {
-                                    // Show success modal
+                                if (userBalance >= price) {
                                     const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-                                    const paymentModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
                                     paymentModal.hide();
+
+                                    const validUntil = new Date();
+                                    validUntil.setDate(validUntil.getDate() + validDays);
+                                    const validDate = validUntil.toISOString().split('T')[0];
+
+                                    document.getElementById('successMessage').innerHTML = `
+                                        Congrats! You've purchased <strong>${code}</strong>.
+                                        Valid until: <strong>${validDate}</strong>.
+                                        Quota: <strong>${quota}</strong>.
+                                    `;
                                     successModal.show();
                                 } else {
-                                    // Show failure modal
                                     const failureModal = new bootstrap.Modal(document.getElementById('failureModal'));
-                                    const paymentModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
                                     paymentModal.hide();
                                     failureModal.show();
                                 }
-                            })
-                            .catch(error => {
-                                console.error('Error fetching user balance:', error);
-                                // Handle error (e.g., show a modal or message)
                             });
                     } else {
-                        // Show success modal immediately for other payment methods
                         const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-                        const paymentModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
                         paymentModal.hide();
+                        document.getElementById('successMessage').innerHTML = `
+                            Congrats! You've purchased <strong>${code}</strong>.
+                            Valid for: <strong>${validDays} days</strong>.
+                            Quota: <strong>${quota}</strong>.
+                        `;
                         successModal.show();
                     }
                 };
-
             });
         });
     </script>
-
 {% endblock %}
