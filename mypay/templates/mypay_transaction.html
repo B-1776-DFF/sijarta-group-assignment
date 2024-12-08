@@ -17,7 +17,9 @@
                 <label for="transactionType" class="block mb-2 text-pink-600">Transaction Type</label>
                 <select id="transactionType" name="transactionType" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
                     <option value="topUp">Top-Up MyPay</option>
+                    {% if role == "Customer" %}
                     <option value="servicePayment">Service Payment</option>
+                    {% endif %}
                     <option value="transfer">Transfer MyPay</option>
                     <option value="withdrawal">Withdrawal</option>
                 </select>
