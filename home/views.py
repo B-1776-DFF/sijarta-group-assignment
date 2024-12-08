@@ -1,11 +1,6 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 
-
-
-# Homepage
-from django.db import connection
-
 def homepage(request):
     query = """
     SELECT 
@@ -35,8 +30,11 @@ def homepage(request):
     return render(request, "homepage.html", {"categories": categories})
 
 
+from django.db import connection
+from django.shortcuts import render
+
 def subcategory_user(request, subcategory_id):
-    # Fetch subcategory details
+    # Fetch subcategory details (name and description)
     query_subcategory = """
     SELECT id, subcategoryname, description 
     FROM sijartagroupassignment.service_subcategory 
@@ -52,26 +50,46 @@ def subcategory_user(request, subcategory_id):
 
     subcategory_name, description = subcategory[1], subcategory[2]
 
-    # Fetch workers in this subcategory
-    query_workers = """
-    SELECT w.id AS worker_id, 
-           w.picurl AS profile_picture, 
-           w.rate AS worker_rate, 
-           w.totalfinishorder
-    FROM sijartagroupassignment.worker w
-    JOIN sijartagroupassignment.worker_service_category wsc
-        ON w.id = wsc.workerid
-    WHERE wsc.servicecategoryid = %s;
+    # Step 1: Get servicecategoryid for the given subcategory_id
+    query_servicecategoryid = """
+    SELECT servicecategoryid 
+    FROM sijartagroupassignment.service_subcategory
+    WHERE id = %s;
     """
     with connection.cursor() as cursor:
-        cursor.execute(query_workers, [str(subcategory_id)])
+        cursor.execute(query_servicecategoryid, [str(subcategory_id)])
+        servicecategoryid = cursor.fetchone()
+
+    if not servicecategoryid:
+        return render(request, '404.html')  # Handle error if servicecategoryid not found
+
+    servicecategoryid = servicecategoryid[0]
+
+    # Step 2: Fetch workers associated with the service category
+    query_workers = """
+        SELECT 
+            u.name AS worker_name,  -- Fetch worker's name from the USER table
+            w.picurl AS profile_picture, 
+            w.rate AS worker_rate, 
+            w.totalfinishorder AS completed_orders
+        FROM sijartagroupassignment.worker w
+        JOIN sijartagroupassignment."USER" u
+            ON w.id = u.id  -- Join on the worker ID to get the worker's name
+        WHERE w.id IN (
+            SELECT workerid
+            FROM sijartagroupassignment.worker_service_category
+            WHERE servicecategoryid = %s
+        );
+        """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query_workers, [str(servicecategoryid)])
         workers = cursor.fetchall()
 
-    # Fetch available service sessions for this subcategory
+    # Fetch available service sessions for this subcategory (Optional: If you still need session data)
     query_sessions = """
-    SELECT ss.subcategoryid AS subcategory_id, 
-           ss.session AS session_number, 
-           ss.price
+    SELECT ss.session AS session_number, 
+           ss.price AS session_price
     FROM sijartagroupassignment.service_session ss
     WHERE ss.subcategoryid = %s;
     """
@@ -79,7 +97,7 @@ def subcategory_user(request, subcategory_id):
         cursor.execute(query_sessions, [str(subcategory_id)])
         sessions = cursor.fetchall()
 
-    # Render the user view template
+    # Render the user view template with workers and sessions
     return render(request, 'subcategory_user.html', {
         'subcategory_name': subcategory_name,
         'description': description,
@@ -141,3 +159,7 @@ def subcategory_worker(request, subcategory_id):
 
     # If not a worker, redirect to the customer page
     return redirect('/subcategory/{}/user/'.format(subcategory_id))
+
+
+def book_service (request, session_id):
+    pass
