@@ -7,8 +7,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 def mypay_view(request):
-    user_id = '26b7d02c-6d45-4630-a848-e8a84494eeeb' # Sample user ID
-    #user_id = request.session.get('user_id') # Getting user's ID
+    #user_id = 'a322b805-43a8-48e2-901b-a0dda9b38924' # Sample user ID
+    user_id = request.session.get('user_id') # Getting user's ID
 
     with connection.cursor() as cursor:
         # Getting user's name, phone number, and balance
@@ -66,8 +66,8 @@ def mypay_view(request):
 @csrf_exempt
 def mypay_transactions(request):
     if request.method == "POST":
-        user_id = 'dd426b67-a25e-4378-b493-6e62c70a0a8d' # Sample user ID
-        #user_id = request.session.get('user_id')
+        #user_id = 'a322b805-43a8-48e2-901b-a0dda9b38924' # Sample user ID
+        user_id = request.session.get('user_id')
         if not user_id:
             return JsonResponse({"success": False, "message": "User not logged in"}, status=403)
 

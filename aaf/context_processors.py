@@ -13,6 +13,7 @@ def user_context(request):
             if temp:
                 name = temp[0]
     role = request.session.get('user_role')
+    print(f"User: {name}, Role: {role}")
     return {
         'user': name,
         'role': role,
