@@ -2,7 +2,7 @@
 
 {% block title %}
     {{ subcategory_name }} Services
-{% endblock %}
+{% endblock title %}
 
 {% block content %}
 <div class="container mt-4">
@@ -142,7 +142,9 @@
     {% endif %}
 </div>
 
+{% endblock %}
 
+{% block extra_js %}
 <!-- JavaScript for Dynamic Modal Behavior -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -166,4 +168,4 @@
         });
     });
 </script>
-{% endblock %}
+{% endblock extra_js %}

@@ -1,5 +1,3 @@
-{% extends 'base.html' %}
-
 {% block content %}
 <!-- Modal -->
 <div id="transactionModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-50">
@@ -81,7 +79,9 @@
         </form>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
     // Toggle the modal visibility
     function toggleModal() {
