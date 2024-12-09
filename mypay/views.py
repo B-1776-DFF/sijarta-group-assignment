@@ -58,7 +58,7 @@ def mypay_view(request):
                 "name": user_data[0],
                 "phone": user_data[1]
             },
-            "balance": float(user_data[2]),
+            "balance": float(user_data[2]) if user_data[2] else 0,
             "transactions": transactions,
             "transaction_data_json": json.dumps(
                 dict(Counter(t["category"] for t in transactions))
