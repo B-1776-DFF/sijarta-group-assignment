@@ -27,10 +27,17 @@ def homepage(request):
         if subcategory_id:
             categories[category_name].append({"id": subcategory_id, "name": subcategory_name})
 
-    return render(request, "homepage.html", {"categories": categories})
+    user_role = request.session.get('user_role', 'user')
+    
+    return render(request, "homepage.html", {"categories": categories, "user_role": user_role})
 
 
 def subcategory_user(request, subcategory_id):
+    # Check if the user is authenticated and if they are a customer
+    user_role = request.session.get('user_role')
+    if user_role != 'Customer':
+        return redirect('homepage')  # Redirect to homepage or any other appropriate page
+    
     # Fetch subcategory details (name and description)
     query_subcategory = """
     SELECT id, subcategoryname, description 
@@ -106,6 +113,11 @@ def subcategory_user(request, subcategory_id):
 
 
 def subcategory_worker(request, subcategory_id):
+    # Check if the user is authenticated and if they are a worker
+    user_role = request.session.get('user_role')
+    if user_role != 'Worker':
+        return redirect('homepage')  # Redirect to homepage or any other appropriate page
+    
     # Initialize the user_is_worker flag and worker variable
     user_is_worker = False
     worker = None

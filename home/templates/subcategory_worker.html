@@ -52,10 +52,10 @@
                 <div class="card shadow-sm text-center">
                     <img src="{{ worker.2 }}" alt="Worker {{ forloop.counter }}" class="card-img-top img-fluid rounded-circle mx-auto mt-3" style="width: 80px; height: 80px; object-fit: cover;">
                     <div class="card-body">
-                        <h6 class="card-title">{{ worker.1 }}</h6>  <!-- worker_name -->
-                        <p class="card-text">Rate: ${{ worker.3|floatformat:2 }}</p>  <!-- worker_rate -->
-                        <p class="card-text">Total Orders: {{ worker.4 }}</p>  <!-- Total Orders -->
-                        <a href="#" class="btn btn-outline-primary btn-sm">View Profile</a>
+                        <h6 class="card-title">{{ worker.1 }}</h6>
+                        <p class="card-text">Rate: {{ worker.3|floatformat:2 }}/10</p>
+                        <p class="card-text">Total Orders: {{ worker.4 }}</p>
+                        <a href="{% url 'worker_profile' worker.0 %}" class="btn btn-outline-primary btn-sm">View Profile</a>
                     </div>
                 </div>
             </div>

@@ -246,7 +246,7 @@ def profile_update_view(request):
                 pic_url = request.POST.get('pic_url')
 
                 cursor.execute("""
-                UPDATE WORKER SET bank_name = %s, acc_number = %s, npwp = %s, pic_url = %s 
+                UPDATE WORKER SET bankname = %s, accnumber = %s, npwp = %s, picurl = %s 
                 WHERE id = %s;
                 """, [bank_name, acc_number, npwp, pic_url, user_id])
 
