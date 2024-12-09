@@ -10,7 +10,7 @@ def discount_view(request):
     # Check if user is logged in
     uuid = request.session.get('user_id')
     if not uuid:
-        return redirect('login')
+        return redirect('landingpage')
 
     vouchers = []
     promos = []
@@ -91,6 +91,9 @@ def discount_view(request):
     return render(request, 'discount.html', context)
 
 def get_user_balance(request):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
     user_phone_num = request.session.get('user_phone_num')
     
     if user_phone_num:

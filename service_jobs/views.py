@@ -1,10 +1,14 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.db import connection, transaction
 from django.http import JsonResponse
 from datetime import datetime
 import json
 
 def service_jobs(request):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
+    
     worker_id = '38297fec-b4c2-4991-8dde-e97df30ef1e8'
     
     # Fetch service categories for the worker

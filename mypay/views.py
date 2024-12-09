@@ -7,6 +7,10 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 def mypay_view(request):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
+    
     #user_id = 'a322b805-43a8-48e2-901b-a0dda9b38924' # Sample user ID
     user_id = request.session.get('user_id') # Getting user's ID
 
@@ -65,6 +69,10 @@ def mypay_view(request):
 
 @csrf_exempt
 def mypay_transactions(request):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
+    
     if request.method == "POST":
         #user_id = 'a322b805-43a8-48e2-901b-a0dda9b38924' # Sample user ID
         user_id = request.session.get('user_id')
