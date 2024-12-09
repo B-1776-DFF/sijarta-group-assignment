@@ -147,14 +147,16 @@ def register_worker_view(request):
             else:
                 messages.error(request, "An error occurred during registration. Please try again.")
 
+        except IntegrityError as e:
+            messages.error(request, "Please enter a unique NPWP number.")
+
     return render(request, 'register_worker.html')
 
 
 def profile_view(request):
     uuid = request.session.get('user_id')
-    print("Phone number:", uuid)  # Debug log
     if not uuid:
-        return redirect('login')
+        return redirect('landingpage')
 
     role = request.session.get('user_role')
 
@@ -273,6 +275,9 @@ def profile_update_view(request):
                 'npwp': profile[3],
                 'pic_url': profile[4]
             }
+    
+    # Convert dob to string in YYYY-MM-DD format
+    dob_str = user[5].strftime('%Y-%m-%d') if user[5] else ''
 
     context = {
         'user': {
@@ -280,12 +285,13 @@ def profile_update_view(request):
             'name': user[1],
             'sex': user[2],
             'phone_num': user[3],
-            'dob': user[5],
+            'dob': dob_str,
             'address': user[6]
         },
         'profile': profile_data,
         'role': role
     }
+    print("Context:", context)  
     return render(request, 'profile_update.html', context)
 
 def homepage(request):

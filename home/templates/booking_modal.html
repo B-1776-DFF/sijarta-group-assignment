@@ -1,0 +1,108 @@
+<!-- Modal for Booking Service -->
+<div class="modal fade" id="bookServiceModal" tabindex="-1" aria-labelledby="bookServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bookServiceModalLabel">Book a Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'book_service' %}" id="bookingForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="order_date" class="form-label">Order Date</label>
+                        <input type="date" class="form-control" id="order_date" name="order_date" value="{{ today_date }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="discount_code" class="form-label">Discount Code</label>
+                        <input type="text" class="form-control" id="discount_code" name="discount_code">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Payment Method</label>
+                        <select class="form-select" id="payment_method" name="payment_method" required>
+                            <option value="1">Credit Card</option>
+                            <option value="2">PayPal</option>
+                            <option value="3">Bank Transfer</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="total_payment" class="form-label">Total Payment</label>
+                        <input type="number" class="form-control" id="total_payment" name="total_payment" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Book Service</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Toggle the modal visibility
+    function toggleModal() {
+        const transactionModal = document.getElementById('transactionModal');
+        transactionModal.classList.toggle('hidden');
+    }
+
+    const transactionType = document.getElementById('transactionType');
+    const topUpFields = document.getElementById('topUpFields');
+    const servicePaymentFields = document.getElementById('servicePaymentFields');
+    const transferFields = document.getElementById('transferFields');
+    const withdrawalFields = document.getElementById('withdrawalFields');
+
+    function updateFormFields() {
+        topUpFields.classList.add('hidden');
+        servicePaymentFields.classList.add('hidden');
+        transferFields.classList.add('hidden');
+        withdrawalFields.classList.add('hidden');
+
+        switch (transactionType.value) {
+            case 'topUp':
+                topUpFields.classList.remove('hidden');
+                break;
+            case 'servicePayment':
+                servicePaymentFields.classList.remove('hidden');
+                break;
+            case 'transfer':
+                transferFields.classList.remove('hidden');
+                break;
+            case 'withdrawal':
+                withdrawalFields.classList.remove('hidden');
+                break;
+        }
+    }
+
+    transactionType.addEventListener('change', updateFormFields);
+    updateFormFields(); // Initialize on load
+
+    // Handle form submission via AJAX
+    const form = document.getElementById('transactionForm');
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        fetch("{% url 'mypay:transaction' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                // Optionally, update the balance and transaction history dynamically
+                location.reload(); // Reload the page to reflect changes
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    });
+</script>
+{% endblock %}

@@ -5,6 +5,9 @@ import datetime
 from django.http import HttpResponse
 
 def homepage(request):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
     query = """
     SELECT 
         sc.id AS category_id,
@@ -36,6 +39,10 @@ def homepage(request):
 
 
 def subcategory_user(request, subcategory_id):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
+    
     # Check if the user is authenticated and if they are a customer
     user_role = request.session.get('user_role')
     if user_role != 'Customer':
@@ -116,6 +123,10 @@ def subcategory_user(request, subcategory_id):
 
 
 def subcategory_worker(request, subcategory_id):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
+    
     # Check if the user is authenticated and if they are a worker
     user_role = request.session.get('user_role')
     if user_role != 'Worker':
@@ -213,7 +224,64 @@ from django.http import JsonResponse
 from django.contrib import messages
 from datetime import datetime
 
+def book_service(request, session_id):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
+    
+    if request.method == 'POST':
+        # Handle the booking form submission
+        user_id = request.session.get('user_id')
+        if not user_id:
+            return redirect('login')  # Redirect to login if user is not authenticated
+
+        order_date = datetime.now()  # Automatically set the current date
+        discount_code = request.POST.get('discount_code', None)
+        payment_method_id = request.POST.get('payment_method')
+        total_payment = request.POST.get('total_payment')
+
+        # You will need to pass the service category ID based on the selected service
+        service_category_id = request.POST.get('service_category_id')
+
+        # Insert the new service order into the database
+        insert_service_order = """
+        INSERT INTO sijartagroupassignment.TR_SERVICE_ORDER (
+            orderDate, serviceDate, serviceTime, TotalPrice, 
+            customerId, serviceCategoryId, discountCode, paymentMethodId
+        ) VALUES (%s, NULL, NULL, %s, %s, %s, %s, %s);
+        """
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(insert_service_order, [
+                    order_date, total_payment, user_id,
+                    service_category_id, discount_code, payment_method_id
+                ])
+                # Get the last inserted ID (serviceTrId)
+                service_tr_id = cursor.lastrowid
+
+                # Insert the initial status for the service order
+                insert_order_status = """
+                INSERT INTO sijartagroupassignment.TR_ORDER_STATUS (
+                    serviceTrId, statusId, date
+                ) VALUES (%s, %s, %s);
+                """
+                # Assume "1" corresponds to the initial status "Waiting for Payment"
+                cursor.execute(insert_order_status, [service_tr_id, 1, order_date])
+
+            messages.success(request, "Service order created successfully!")
+            return redirect('my_orders')  # Redirect to the same page to view bookings
+        except Exception as e:
+            messages.error(request, "Unable to create service order. Please try again.")
+            return redirect('my_orders')
+
+    # Default template rendering when GET request is made
+    return render(request, 'myorder.html', {'today_date': datetime.today().strftime('%Y-%m-%d')})
+
 def my_orders(request):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
+    
     # Check if the user is authenticated
     user_id = request.session.get('user_id')
     print(user_id)
@@ -338,6 +406,10 @@ def cancel_service_order(request):
         return HttpResponse("Order not found or you do not have permission to cancel it.", status=404)
     
 def worker_profile_view(request, worker_id):
+    uuid = request.session.get('user_id')
+    if not uuid:
+        return redirect('landingpage')
+    
     with connection.cursor() as cursor:
         cursor.execute("""
         SET search_path TO sijartagroupassignment;

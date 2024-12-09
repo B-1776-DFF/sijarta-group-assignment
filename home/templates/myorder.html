@@ -1,12 +1,18 @@
 {% extends 'baseaaf.html' %}
 
 {% block title %}
-Service Categories
+Service Orders
 {% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <h3 class="text-center">Your Service Orders</h3>
+    
+    <!-- Book Service Button -->
+    <div class="text-center mb-4">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bookServiceModal">Book Service</button>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-bordered">
             <thead class="table-light">
@@ -30,7 +36,7 @@ Service Categories
                     <td>
                         {% if order.status == "Waiting" or order.status == "Searching for Nearest Workers" %}
                             <button class="btn btn-danger btn-sm" onclick="cancelOrder({{ order.id }})">Cancel Order</button>
-                        {% elif order.status == "Order Completed" and not order.has_testimonial %}
+                        {% elif order.status == "Completed" and not order.has_testimonial %}
                             <button class="btn btn-primary btn-sm" onclick="createTestimonial({{ order.id }})">Create Testimonial</button>
                         {% endif %}
                     </td>
@@ -45,6 +51,49 @@ Service Categories
     </div>
 </div>
 
+<!-- Modal for Booking Service -->
+<div class="modal fade" id="bookServiceModal" tabindex="-1" aria-labelledby="bookServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bookServiceModalLabel">Book a Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'book_service' %}" id="bookingForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="order_date" class="form-label">Order Date</label>
+                        <input type="date" class="form-control" id="order_date" name="order_date" value="{{ today_date }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="discount_code" class="form-label">Discount Code</label>
+                        <input type="text" class="form-control" id="discount_code" name="discount_code">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Payment Method</label>
+                        <select class="form-select" id="payment_method" name="payment_method" required>
+                            <option value="1">Credit Card</option>
+                            <option value="2">PayPal</option>
+                            <option value="3">Bank Transfer</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="total_payment" class="form-label">Total Payment</label>
+                        <input type="number" class="form-control" id="total_payment" name="total_payment" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Book Service</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
 <script>
     function cancelOrder(orderId) {
         if (confirm("Are you sure you want to cancel this order?")) {
@@ -56,4 +105,5 @@ Service Categories
         window.location.href = `{% url 'login' %}?order_id=${orderId}`;
     }
 </script>
+{% endblock extra_js %}
 {% endblock %}

@@ -1,15 +1,15 @@
 {% load static %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
+    <div class="container-fluid d-flex align-items-center">
         {% if request.session.user_id %}
-            <a class="navbar-brand" href="{% url 'homepage' %}">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'homepage' %}">
                 <img src="{% static 'images/SijartaLogo-removebg-preview.png' %}" alt="Logo" style="height: 60px; margin-right: 10px;">
-                S I J A R T A
+                <span>S I J A R T A</span>
             </a>
         {% else %}
-            <a class="navbar-brand" href="{% url 'landingpage' %}">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'landingpage' %}">
                 <img src="{% static 'images/SijartaLogo-removebg-preview.png' %}" alt="Logo" style="height: 60px; margin-right: 10px;">
-                S I J A R T A
+                <span>S I J A R T A</span>
             </a>
         {% endif %}
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -42,8 +42,6 @@
                         <li class="nav-item"><a class="nav-link" href="{% url 'service_jobs:service_job_status' %}">Manage Order Status</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'mypay:mypay' %}">MyPay</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Profile</a></li>
-                    
-                    
                     {% endif %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
                 {% else %}
