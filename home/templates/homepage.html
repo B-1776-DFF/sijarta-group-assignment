@@ -106,11 +106,11 @@ Service Categories
     }
 
     /**
-     * Redirects to a specific subcategory page based on the user's authentication status
+     * Redirects to a specific subcategory page based on the user's role
      */
     function redirectToSubcategory(subcategoryId) {
-        const userType = '{{ request.user.is_authenticated|yesno:"user,worker" }}';
-        window.location.href = `/subcategory/${subcategoryId}/${userType}/`;
+        const userRole = '{{ user_role }}';
+        window.location.href = `/subcategory/${subcategoryId}/${userRole}/`;
     }
 </script>
 {% endblock %}
