@@ -1,5 +1,8 @@
 from django.shortcuts import render, redirect
 from django.db import connection
+from django.contrib import messages
+import datetime
+from django.http import HttpResponse
 
 def homepage(request):
     query = """
@@ -204,9 +207,136 @@ def subcategory_worker(request, subcategory_id):
 def book_service (request, session_id):
     pass
 
-def my_orders(request):
-    return request(request, 'myorder.html')
+from django.db import connection
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.contrib import messages
+from datetime import datetime
 
+def my_orders(request):
+    # Check if the user is authenticated
+    user_id = request.session.get('user_id')
+    print(user_id)
+    if not user_id:
+        return redirect('login')  # Redirect to login if user is not authenticated
+
+    if request.method == "POST":
+        # Handle the creation of a new service order
+        order_date = datetime.now()  # Automatically set the current date
+        discount_code = request.POST.get('discount_code', None)
+        payment_method_id = request.POST.get('payment_method_id')  # Dropdown value
+        service_category_id = request.POST.get('service_category_id')  # Hidden input or passed value
+        total_payment = request.POST.get('total_payment')
+
+        # Insert the new service order into the database
+        insert_service_order = """
+        INSERT INTO sijartagroupassignment.TR_SERVICE_ORDER (
+            orderDate, serviceDate, serviceTime, TotalPrice, 
+            customerId, serviceCategoryId, discountCode, paymentMethodId
+        ) VALUES (%s, NULL, NULL, %s, %s, %s, %s, %s);
+        """
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(insert_service_order, [
+                    order_date, total_payment, user_id,
+                    service_category_id, discount_code, payment_method_id
+                ])
+                # Get the last inserted ID (serviceTrId)
+                service_tr_id = cursor.lastrowid
+
+                # Insert the initial status for the service order
+                insert_order_status = """
+                INSERT INTO sijartagroupassignment.TR_ORDER_STATUS (
+                    serviceTrId, statusId, date
+                ) VALUES (%s, %s, %s);
+                """
+                # Assume "1" corresponds to the initial status "Waiting for Payment"
+                cursor.execute(insert_order_status, [service_tr_id, 1, order_date])
+
+            messages.success(request, "Service order created successfully!")
+            return redirect('my_orders')  # Redirect to the same page to view bookings
+        except Exception as e:
+            print("Error creating service order:", e)
+            messages.error(request, "Unable to create service order. Please try again.")
+
+    # Fetch all service orders for the logged-in user
+    select_query = """
+    SELECT 
+        o.Id AS order_id,
+        ss.subcategoryname AS service_name,
+        o.orderDate AS order_date,
+        o.TotalPrice AS total_payment,
+        o.discountCode AS discount_code,
+        o.paymentMethodId AS payment_method,
+        os.Status AS order_status
+    FROM sijartagroupassignment.TR_SERVICE_ORDER o
+    JOIN sijartagroupassignment.SERVICE_SUBCATEGORY ss ON o.serviceCategoryId = ss.Id
+    JOIN (
+        SELECT tos.serviceTrId, MAX(tos.date) AS latest_date
+        FROM sijartagroupassignment.TR_ORDER_STATUS tos
+        GROUP BY tos.serviceTrId
+    ) latest_status ON o.Id = latest_status.serviceTrId
+    JOIN sijartagroupassignment.TR_ORDER_STATUS tos ON 
+        o.Id = tos.serviceTrId AND tos.date = latest_status.latest_date
+    JOIN sijartagroupassignment.ORDER_STATUS os ON tos.statusId = os.Id
+    WHERE o.customerId = %s;
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(select_query, [user_id])
+        service_orders = cursor.fetchall()
+
+    # Convert to a list of dictionaries for easier use in templates
+    orders = []
+    for order in service_orders:
+        orders.append({
+            'id': order[0],
+            'service_name': order[1],
+            'order_date': order[2].strftime('%Y-%m-%d') if order[2] else None,
+            'total_payment': order[3],
+            'discount_code': order[4],
+            'payment_method': order[5],  # Map ID to name if needed
+            'status': order[6]
+        })
+    
+    print("User ID:", user_id)
+    print("Orders:", orders)    
+    return render(request, 'myorder.html', {'service_orders': orders})
+
+
+def cancel_service_order(request):
+    user_id = request.session.get('user_id')
+    
+    try:
+        select_query = """
+            SELECT 
+                o.Id AS order_id,
+                ss.subcategoryname AS service_name,
+                o.orderDate AS order_date,
+                o.TotalPrice AS total_payment,
+                o.discountCode AS discount_code,
+                o.paymentMethodId AS payment_method,
+                os.Status AS order_status
+            FROM sijartagroupassignment.TR_SERVICE_ORDER o
+            JOIN sijartagroupassignment.SERVICE_SUBCATEGORY ss ON o.serviceCategoryId = ss.Id
+            JOIN (
+                SELECT tos.serviceTrId, MAX(tos.date) AS latest_date
+                FROM sijartagroupassignment.TR_ORDER_STATUS tos
+                GROUP BY tos.serviceTrId
+            ) latest_status ON o.Id = latest_status.serviceTrId
+            JOIN sijartagroupassignment.TR_ORDER_STATUS tos ON 
+                o.Id = tos.serviceTrId AND tos.date = latest_status.latest_date
+            JOIN sijartagroupassignment.ORDER_STATUS os ON tos.statusId = os.Id
+            WHERE o.customerId = %s;
+            """
+        if select_query[6] in ["Waiting for Payment", "Searching for Nearest Workers"]:
+            select_query[6] = "Cancelled"
+            select_query[6].save()
+            return redirect('my_orders')  # Redirect to the page that lists orders
+        else:
+            return HttpResponse("This order cannot be cancelled.", status=400)
+    except select_query[6].DoesNotExist:
+        return HttpResponse("Order not found or you do not have permission to cancel it.", status=404)
+    
 def worker_profile_view(request, worker_id):
     with connection.cursor() as cursor:
         cursor.execute("""
