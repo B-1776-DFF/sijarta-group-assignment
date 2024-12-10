@@ -55,7 +55,7 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <p class="fw-bold">MyPay Balance</p>
-                            <p class="text-muted">Rp{{ user.mypay_balance }}</p>
+                            <p class="text-muted">Rp{{ user.mypay_balance|floatformat:0 }},00</p>
                         </div>
                         {% if role == "Customer" %}
                             <div class="col-md-6">
@@ -77,7 +77,7 @@
                             </div>
                             <div class="col-md-6">
                                 <p class="fw-bold">Rating</p>
-                                <p class="text-muted">{{ profile.rate }}</p>
+                                <p class="text-muted">{{ profile.rate }}/10</p>
                             </div>
                             <div class="col-md-6">
                                 <p class="fw-bold">Completed Orders</p>

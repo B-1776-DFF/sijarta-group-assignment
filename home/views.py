@@ -45,6 +45,45 @@ def subcategory_user(request, subcategory_id):
     if not uuid:
         return redirect('landingpage')
     
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SET SEARCH_PATH TO sijartagroupassignment;
+            WITH WorkerRatings AS (
+                SELECT 
+                    tso.workerId AS Worker_ID,
+                    COALESCE(SUM(t.rating) * 1.0 / COUNT(t.rating), 0) AS Average_Rating
+                FROM 
+                    tr_service_order tso
+                LEFT JOIN 
+                    testimoni t
+                ON 
+                    tso.id = t.serviceTrId
+                GROUP BY 
+                    tso.workerId
+            )
+            UPDATE worker w
+            SET 
+                Rate = wr.Average_Rating
+            FROM 
+                WorkerRatings wr
+            WHERE 
+                w.ID = wr.Worker_ID AND w.ID = %s;
+            """, [uuid])
+
+
+        cursor.execute("""            
+        SET SEARCH_PATH to sijartagroupassignment;
+        SELECT COUNT(*) FROM TR_SERVICE_ORDER WHERE workerid = %s;
+        """, [uuid])
+        finished_order = cursor.fetchone()[0]
+
+        cursor.execute("""
+        SET SEARCH_PATH TO sijartagroupassignment;
+        UPDATE WORKER
+        SET totalfinishorder = %s
+        WHERE id = %s;
+        """, [finished_order, uuid])
+    
     # Check if the user is authenticated and if they are a customer
     user_role = request.session.get('user_role')
     if user_role != 'Customer':
@@ -137,6 +176,44 @@ def subcategory_worker(request, subcategory_id):
     if user_role != 'Worker':
         return redirect('homepage')  # Redirect to homepage or any other appropriate page
     
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SET SEARCH_PATH TO sijartagroupassignment;
+            WITH WorkerRatings AS (
+                SELECT 
+                    tso.workerId AS Worker_ID,
+                    COALESCE(SUM(t.rating) * 1.0 / COUNT(t.rating), 0) AS Average_Rating
+                FROM 
+                    tr_service_order tso
+                LEFT JOIN 
+                    testimoni t
+                ON 
+                    tso.id = t.serviceTrId
+                GROUP BY 
+                    tso.workerId
+            )
+            UPDATE worker w
+            SET 
+                Rate = wr.Average_Rating
+            FROM 
+                WorkerRatings wr
+            WHERE 
+                w.ID = wr.Worker_ID AND w.ID = %s;
+            """, [uuid])
+
+
+        cursor.execute("""            
+        SET SEARCH_PATH to sijartagroupassignment;
+        SELECT COUNT(*) FROM TR_SERVICE_ORDER WHERE workerid = %s;
+        """, [uuid])
+        finished_order = cursor.fetchone()[0]
+
+        cursor.execute("""
+        SET SEARCH_PATH TO sijartagroupassignment;
+        UPDATE WORKER
+        SET totalfinishorder = %s
+        WHERE id = %s;
+        """, [finished_order, uuid])
     # Initialize the user_is_worker flag and worker variable
     user_is_worker = False
     worker = None
@@ -506,6 +583,44 @@ def worker_profile_view(request, worker_id):
         return redirect('landingpage')
     
     with connection.cursor() as cursor:
+
+        cursor.execute("""
+            SET SEARCH_PATH TO sijartagroupassignment;
+            WITH WorkerRatings AS (
+                SELECT 
+                    tso.workerId AS Worker_ID,
+                    COALESCE(SUM(t.rating) * 1.0 / COUNT(t.rating), 0) AS Average_Rating
+                FROM 
+                    tr_service_order tso
+                LEFT JOIN 
+                    testimoni t
+                ON 
+                    tso.id = t.serviceTrId
+                GROUP BY 
+                    tso.workerId
+            )
+            UPDATE worker w
+            SET 
+                Rate = wr.Average_Rating
+            FROM 
+                WorkerRatings wr
+            WHERE 
+                w.ID = wr.Worker_ID AND w.ID = %s;
+            """, [uuid])
+        
+        cursor.execute("""            
+        SET SEARCH_PATH to sijartagroupassignment;
+        SELECT COUNT(*) FROM TR_SERVICE_ORDER WHERE workerid = %s;
+        """, [uuid])
+        finished_order = cursor.fetchone()[0]
+
+        cursor.execute("""
+        SET SEARCH_PATH TO sijartagroupassignment;
+        UPDATE WORKER
+        SET totalfinishorder = %s
+        WHERE id = %s;
+        """, [finished_order, uuid])
+        
         cursor.execute("""
         SET search_path TO sijartagroupassignment;
         SELECT u.name, u.sex, u.phonenum, u.dob, u.address, w.bankname, w.accnumber, w.npwp, w.picurl, w.rate, w.totalfinishorder
