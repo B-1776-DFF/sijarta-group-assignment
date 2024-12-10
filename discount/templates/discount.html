@@ -40,11 +40,11 @@
                         {% for voucher in vouchers %}
                         <tr>
                             <td>{{ voucher.0 }}</td>
-                            <td>{{ voucher.1 }}%</td>
-                            <td>${{ voucher.2 }}</td>
+                            <td>{{ voucher.1 |floatformat:2 }}%</td>
+                            <td>Rp{{ voucher.2 |floatformat:2 }}</td>
                             <td>{{ voucher.3 }}</td>
                             <td>{{ voucher.4 }}</td>
-                            <td>${{ voucher.5 }}</td>
+                            <td>Rp{{ voucher.5 |floatformat:2}}</td>
                             <td>
                                 <button class="btn btn-primary buy-button" 
                                         data-code="{{ voucher.0 }}" 
