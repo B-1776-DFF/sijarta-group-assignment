@@ -149,9 +149,9 @@
     <div class="list-group">
         {% for testimonial in testimonials %}
         <div class="list-group-item">
-            <h6 class="fw-bold">{{ testimonial.0 }} <small class="text-muted">({{ testimonial.1 }})</small></h6>
-            <p class="mb-1">{{ testimonial.2 }}</p>
-            <p><strong>Rating:</strong> {{ testimonial.3 }}/5</p>
+            <h6 class="fw-bold">{{ testimonial.user_name }} <small class="text-muted">({{ testimonial.created_at }})</small></h6>
+            <p class="mb-1">{{ testimonial.testimonial_text }}</p>
+            <p><strong>Rating:</strong> {{ testimonial.testimonial_rating }}/5</p>
         </div>
         {% endfor %}
     </div>
@@ -159,6 +159,7 @@
     <p class="text-muted">No testimonials available for this service category.</p>
     {% endif %}
 </section>
+
 
 {% endblock %}
 

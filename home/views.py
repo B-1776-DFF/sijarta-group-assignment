@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.db import connection, transaction
 from django.contrib import messages
 import datetime
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import uuid
 from time import timezone
 
@@ -152,6 +152,7 @@ def subcategory_user(request, subcategory_id):
     with connection.cursor() as cursor:
         cursor.execute(query_sessions, [str(subcategory_id)])
         sessions = cursor.fetchall()
+
 
     print (sessions)
     # Render the user view template with workers and sessions
@@ -309,6 +310,7 @@ def book_service(request):
         discount_code = request.POST.get('discount_code', None)
         payment_method_name = request.POST.get('payment_method')  # Name provided from modal
         total_payment = request.POST.get('total_payment')
+        
         service_category_id = request.POST.get('service_category_id')
 
         print("POST data:", request.POST)  # Debugging
@@ -383,165 +385,41 @@ def book_service(request):
             # Log and display error message
             print("Error creating service order:", e)
             print(request, "An error occurred while creating your order. Please try again.")
-            return redirect('homepage')
+            return redirect('myorder')
 
     # Handle non-POST requests
     return render(request, 'myorder.html', {
         'today_date': datetime.datetime.today().strftime('%Y-%m-%d')
     })
 
- 
-    
-        
-# def book_service(request):
-#     user_id = request.session.get('user_id')  # Get user ID from session
-#     if not user_id:
-#         return redirect('login')  # Redirect to login if user is not authenticated
-
-#     if request.method == 'POST':
-#         order_date = datetime.datetime.today()  # Automatically set the current date
-#         discount_code = request.POST.get('discount_code', None)
-#         payment_method = request.POST.get('payment_method')
-#         total_payment = request.POST.get('total_payment')
-#         service_category_id = request.POST.get('service_category_id')
-
-#         # Insert the new service order into the database
-#         insert_service_order = """
-#         INSERT INTO sijartagroupassignment.TR_SERVICE_ORDER (
-#             orderDate, serviceDate, serviceTime, TotalPrice, 
-#             customerId, serviceCategoryId, discountCode, paymentMethodId
-#         ) VALUES (%s, NULL, NULL, %s, %s, %s, %s, %s);
-#         """
-#         try:
-#             with connection.cursor() as cursor:
-#                 cursor.execute(insert_service_order, [
-#                     order_date, total_payment, user_id,
-#                     service_category_id, discount_code, payment_method
-#                 ])
-#                 # Get the last inserted ID (serviceTrId)
-#                 service_tr_id = cursor.lastrowid
-
-#                 # Insert the initial status for the service order
-#                 insert_order_status = """
-#                 INSERT INTO sijartagroupassignment.TR_ORDER_STATUS (
-#                     serviceTrId, statusId, date
-#                 ) VALUES (%s, %s, %s);
-#                 """
-#                 # Assume "1" corresponds to the initial status "Waiting for Payment"
-#                 cursor.execute(insert_order_status, [service_tr_id, 1, order_date])
-
-#             # Prepare the data to return to the template
-#             context = {
-#                 'order_id': service_tr_id,  # The ID of the newly created service order
-#                 'total_payment': total_payment,
-#                 'service_category_id': service_category_id,
-#                 'order_date': order_date.strftime('%Y-%m-%d %H:%M:%S'),
-#             }
-
-#             messages.success(request, "Service order created successfully!")
-#             return render(request, 'myorder.html', context)  # Return data to the template
-
-#         except Exception as e:
-#             messages.error(request, "Unable to create service order. Please try again.")
-#             return redirect('myorder')
-
-#     # Default template rendering when GET request is made
-#     return render(request, 'myorder.html', {'today_date': datetime.datetime.today().strftime('%Y-%m-%d')})
-
-
 def my_orders(request):
-    uuid = request.session.get('user_id')
-    if not uuid:
-        return redirect('landingpage')
-    
-    # Check if the user is authenticated
     user_id = request.session.get('user_id')
-    print(user_id)
     if not user_id:
         return redirect('login')  # Redirect to login if user is not authenticated
 
-    if request.method == "POST":
-        # Handle the creation of a new service order
-        order_date = datetime.datetime.now()  # Automatically set the current date
-        discount_code = request.POST.get('discount_code', None)
-        payment_method = request.POST.get('payment_method')  # Dropdown value
-        service_category_id = request.POST.get('service_category_id')  # Hidden input or passed value
-        total_payment = request.POST.get('total_payment')
-
-        # Insert the new service order into the database
-        insert_service_order = """
-        INSERT INTO sijartagroupassignment.TR_SERVICE_ORDER (
-            orderDate, serviceDate, serviceTime, TotalPrice, 
-            customerId, serviceCategoryId, discountCode, paymentMethodId
-        ) VALUES (%s, NULL, NULL, %s, %s, %s, %s, %s);
-        """
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(insert_service_order, [
-                    order_date, total_payment, user_id,
-                    service_category_id, discount_code, payment_method
-                ])
-                # Get the last inserted ID (serviceTrId)
-                service_tr_id = cursor.lastrowid
-
-                # Insert the initial status for the service order
-                insert_order_status = """
-                INSERT INTO sijartagroupassignment.TR_ORDER_STATUS (
-                    serviceTrId, statusId, date
-                ) VALUES (%s, %s, %s);
-                """
-                # Assume "1" corresponds to the initial status "Waiting for Payment"
-                cursor.execute(insert_order_status, [service_tr_id, 1, order_date])
-
-            messages.success(request, "Service order created successfully!")
-            return redirect('my_orders')  # Redirect to the same page to view bookings
-        except Exception as e:
-            print("Error creating service order:", e)
-            messages.error(request, "Unable to create service order. Please try again.")
-
-    # Fetch all service orders for the logged-in user
-    select_query = """
-    SELECT 
-        o.Id AS order_id,
-        ss.subcategoryname AS service_name,
-        o.orderDate AS order_date,
-        o.TotalPrice AS total_payment,
-        o.discountCode AS discount_code,
-        o.paymentMethodId AS payment_method,
-        os.Status AS order_status
-    FROM sijartagroupassignment.TR_SERVICE_ORDER o
-    JOIN sijartagroupassignment.SERVICE_SUBCATEGORY ss ON o.serviceCategoryId = ss.Id
-    JOIN (
-        SELECT tos.serviceTrId, MAX(tos.date) AS latest_date
-        FROM sijartagroupassignment.TR_ORDER_STATUS tos
-        GROUP BY tos.serviceTrId
-    ) latest_status ON o.Id = latest_status.serviceTrId
-    JOIN sijartagroupassignment.TR_ORDER_STATUS tos ON 
-        o.Id = tos.serviceTrId AND tos.date = latest_status.latest_date
-    JOIN sijartagroupassignment.ORDER_STATUS os ON tos.statusId = os.Id
-    WHERE o.customerId = %s;
+    # Fetch all orders from the database for the user
+    fetch_orders = """
+    SELECT Id, orderDate, TotalPrice, serviceCategoryId, discountCode, paymentMethodId
+    FROM sijartagroupassignment.TR_SERVICE_ORDER
+    WHERE customerId = %s
     """
-    with connection.cursor() as cursor:
-        cursor.execute(select_query, [user_id])
-        service_orders = cursor.fetchall()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(fetch_orders, [user_id])
+            orders = cursor.fetchall()
 
-    # Convert to a list of dictionaries for easier use in templates
-    orders = []
-    for order in service_orders:
-        orders.append({
-            'id': order[0],
-            'service_name': order[1],
-            'order_date': order[2].strftime('%Y-%m-%d') if order[2] else None,
-            'total_payment': order[3],
-            'discount_code': order[4],
-            'payment_method': order[5],  # Map ID to name if needed
-            'status': order[6]
-        })
+        context = {
+            'orders': orders
+        }
+        print (orders)
+        return render(request, 'myorder.html', context)
+
+    except Exception as e:
+        print(request, "Unable to fetch orders. Please try again.")
+        print("Database Error:", e)
+        return redirect('homepage')
     
-    print("User ID:", user_id)
-    print("Orders:", orders)    
-    return render(request, 'myorder.html', {'service_orders': orders})
-
+    
 
 def cancel_service_order(request):
     user_id = request.session.get('user_id')
@@ -576,6 +454,9 @@ def cancel_service_order(request):
             return HttpResponse("This order cannot be cancelled.", status=400)
     except select_query[6].DoesNotExist:
         return HttpResponse("Order not found or you do not have permission to cancel it.", status=404)
+    
+
+
     
 def worker_profile_view(request, worker_id):
     uuid = request.session.get('user_id')
