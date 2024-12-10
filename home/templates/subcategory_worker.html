@@ -32,7 +32,7 @@
                 {% for session in sessions %}
                 <tr>
                     <td>{{ session.0 }}</td>  <!-- session_name -->
-                    <td>${{ session.1|floatformat:2 }}</td>  <!-- session_price -->
+                    <td>Rp.{{ session.1|floatformat:2 }}</td>  <!-- session_price -->
                 </tr>
                 {% empty %}
                 <tr>

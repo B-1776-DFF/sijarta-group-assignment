@@ -9,7 +9,4 @@ urlpatterns = [
     path('worker/<uuid:worker_id>/', views.worker_profile_view, name='worker_profile'),
     path('cancel_service_order/', views.cancel_service_order, name='cancel_service_order'),
     path('order/', views.book_service, name='book_service'),
-    # path('subcategory/<int:subcategory_id>/join/', views.join_subcategory, name='join_subcategory'),
-    # path('book-session/<int:session_id>/', views.book_session, name='book_session'),
-
 ]
