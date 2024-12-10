@@ -75,15 +75,15 @@ def register_user_view(request):
 
         # Generate a unique ID for the user
         user_id = str(uuid.uuid4())
-
+        zero = 0.000000000000000000000000000000
         try:
             with connection.cursor() as cursor:
                 # Insert the user into the database
                 cursor.execute("""
                 SET search_path TO sijartagroupassignment;
-                INSERT INTO "USER" (id, name, pwd, sex, phonenum, dob, address) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
-                """, [user_id, name, password, sex, phone, dob, address])
+                INSERT INTO "USER" (id, name, pwd, sex, phonenum, dob, address, mypaybalance) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;
+                """, [user_id, name, password, sex, phone, dob, address, zero])
                 user_id = cursor.fetchone()[0]
 
                 # Insert into the CUSTOMER table
@@ -123,14 +123,15 @@ def register_worker_view(request):
 
         # Generate a unique ID for the user
         user_id = str(uuid.uuid4())
+        zero = 0.000000000000000000000000000000
 
         try:
             with connection.cursor() as cursor:
                 cursor.execute("""
                 SET search_path TO sijartagroupassignment;
-                INSERT INTO "USER" (id, name, pwd, sex, phonenum, dob, address) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
-                """, [user_id, name, password, sex, phone, dob, address])
+                INSERT INTO "USER" (id, name, pwd, sex, phonenum, dob, address, mypaybalance) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;
+                """, [user_id, name, password, sex, phone, dob, address, zero])
                 user_id = cursor.fetchone()[0]
 
                 cursor.execute("""
@@ -169,15 +170,84 @@ def profile_view(request):
         user = cursor.fetchone()
 
         profile = None
-        if role == 'Customer':
+        level = None
+
+        if role == 'Customer':            
+            cursor.execute("""            
+            SET SEARCH_PATH to sijartagroupassignment;
+            SELECT COUNT(*) FROM TR_SERVICE_ORDER WHERE customerid = %s;
+            """, [uuid])
+            level = cursor.fetchone()[0]
+            print(level)
+            level_name = ''
+            if level >= 10:
+                level_name = 'Radiant'
+            elif level >= 8:
+                level_name = 'Platinum'
+            elif level >= 6:
+                level_name = 'Gold'
+            elif level >= 4:
+                level_name = 'Silver'
+            else : 
+                level_name = 'Bronze'
+            
             cursor.execute("""
+            SET SEARCH_PATH TO sijartagroupassignment;
+            UPDATE CUSTOMER
+            SET LEVEL = %s
+            WHERE id = %s;
+            """, [level_name, uuid])
+
+            cursor.execute("""
+            SET SEARCH_PATH TO sijartagroupassignment;
             SELECT * FROM CUSTOMER WHERE id = %s;
             """, [uuid])  # Query profile using phone_num
             profile = cursor.fetchone()
+            print(profile)
             profile_data = {
                 'level': profile[1]
             }
+
         elif role == 'Worker':
+
+            cursor.execute("""
+            SET SEARCH_PATH TO sijartagroupassignment;
+            WITH WorkerRatings AS (
+                SELECT 
+                    tso.workerId AS Worker_ID,
+                    COALESCE(SUM(t.rating) * 1.0 / COUNT(t.rating), 0) AS Average_Rating
+                FROM 
+                    tr_service_order tso
+                LEFT JOIN 
+                    testimoni t
+                ON 
+                    tso.id = t.serviceTrId
+                GROUP BY 
+                    tso.workerId
+            )
+            UPDATE worker w
+            SET 
+                Rate = wr.Average_Rating
+            FROM 
+                WorkerRatings wr
+            WHERE 
+                w.ID = wr.Worker_ID AND w.ID = %s;
+            """, [uuid])
+
+
+            cursor.execute("""            
+            SET SEARCH_PATH to sijartagroupassignment;
+            SELECT COUNT(*) FROM TR_SERVICE_ORDER WHERE workerid = %s;
+            """, [uuid])
+            finished_order = cursor.fetchone()[0]
+
+            cursor.execute("""
+            SET SEARCH_PATH TO sijartagroupassignment;
+            UPDATE WORKER
+            SET totalfinishorder = %s
+            WHERE id = %s;
+            """, [finished_order, uuid])
+            
             cursor.execute("""
             SELECT * FROM WORKER WHERE id = %s;
             """, [uuid])  # Query profile using phone_num
@@ -190,6 +260,8 @@ def profile_view(request):
                 'rate': profile[5],
                 'total_finish_order': profile[6]
             }
+
+
         print("Profile fetched:", profile)  # Debug log
         print("Role:", role)  # Debug log
         print("User:", user)  # Debug log
