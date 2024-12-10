@@ -279,6 +279,17 @@ def update_order_status(request):
                     VALUES (%s, (SELECT Id FROM order_status WHERE Status = %s), %s)
                 """, [order_id, new_status, datetime.now()])
 
+                # If status is changed to Completed, increment totalfinishorder
+                if new_status == 'Completed':
+                    cursor.execute("""
+                        SET search_path TO sijartagroupassignment;
+                        UPDATE worker w
+                        SET totalfinishorder = COALESCE(totalfinishorder, 0) + 1
+                        FROM tr_service_order tso
+                        WHERE tso.id = %s 
+                        AND w.id = tso.workerid
+                    """, [order_id])
+
                 return JsonResponse({'success': True})
 
         except Exception as e:
