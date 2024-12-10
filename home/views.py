@@ -313,7 +313,7 @@ def book_service(request):
         'today_date': datetime.datetime.today().strftime('%Y-%m-%d')
     })
 
- 
+
     
         
 # def book_service(request):
@@ -379,12 +379,11 @@ def my_orders(request):
     
     # Check if the user is authenticated
     user_id = request.session.get('user_id')
-    print(user_id)
     if not user_id:
         return redirect('login')  # Redirect to login if user is not authenticated
 
+    # Handle POST request for creating a service order (if applicable)
     if request.method == "POST":
-        # Handle the creation of a new service order
         order_date = datetime.datetime.now()  # Automatically set the current date
         discount_code = request.POST.get('discount_code', None)
         payment_method = request.POST.get('payment_method')  # Dropdown value
@@ -404,23 +403,19 @@ def my_orders(request):
                     order_date, total_payment, user_id,
                     service_category_id, discount_code, payment_method
                 ])
-                # Get the last inserted ID (serviceTrId)
-                service_tr_id = cursor.lastrowid
+                service_tr_id = cursor.lastrowid  # Get the last inserted service order ID
 
-                # Insert the initial status for the service order
+                # Insert initial order status
                 insert_order_status = """
                 INSERT INTO sijartagroupassignment.TR_ORDER_STATUS (
                     serviceTrId, statusId, date
                 ) VALUES (%s, %s, %s);
                 """
-                # Assume "1" corresponds to the initial status "Waiting for Payment"
-                cursor.execute(insert_order_status, [service_tr_id, 1, order_date])
-
+                cursor.execute(insert_order_status, [service_tr_id, 1, order_date])  # "1" for initial status
             messages.success(request, "Service order created successfully!")
-            return redirect('my_orders')  # Redirect to the same page to view bookings
+            return redirect('my_orders')  # Redirect to the same page
         except Exception as e:
-            print("Error creating service order:", e)
-            messages.error(request, "Unable to create service order. Please try again.")
+            messages.error(request, f"Unable to create service order: {str(e)}")
 
     # Fetch all service orders for the logged-in user
     select_query = """
@@ -429,9 +424,12 @@ def my_orders(request):
         ss.subcategoryname AS service_name,
         o.orderDate AS order_date,
         o.TotalPrice AS total_payment,
-        o.discountCode AS discount_code,
-        o.paymentMethodId AS payment_method,
-        os.Status AS order_status
+        os.Status AS order_status,
+        EXISTS (
+            SELECT 1 
+            FROM sijartagroupassignment.TESTIMONI t 
+            WHERE t.serviceTrId = o.Id
+        ) AS has_testimonial
     FROM sijartagroupassignment.TR_SERVICE_ORDER o
     JOIN sijartagroupassignment.SERVICE_SUBCATEGORY ss ON o.serviceCategoryId = ss.Id
     JOIN (
@@ -448,7 +446,7 @@ def my_orders(request):
         cursor.execute(select_query, [user_id])
         service_orders = cursor.fetchall()
 
-    # Convert to a list of dictionaries for easier use in templates
+    # Convert to a list of dictionaries for template rendering
     orders = []
     for order in service_orders:
         orders.append({
@@ -456,14 +454,12 @@ def my_orders(request):
             'service_name': order[1],
             'order_date': order[2].strftime('%Y-%m-%d') if order[2] else None,
             'total_payment': order[3],
-            'discount_code': order[4],
-            'payment_method': order[5],  # Map ID to name if needed
-            'status': order[6]
+            'status': order[4],
+            'has_testimonial': bool(order[5]),
         })
-    
-    print("User ID:", user_id)
-    print("Orders:", orders)    
+
     return render(request, 'myorder.html', {'service_orders': orders})
+
 
 
 def cancel_service_order(request):
@@ -589,3 +585,19 @@ def submit_testimonial(request):
             return JsonResponse({'success': True, 'message': 'Testimonial submitted successfully.'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
+
+def delete_testimonial(request):
+    if request.method == "POST":
+        service_tr_id = request.POST.get('servicetrid')
+        print(f"Received servicetrid: {service_tr_id}")
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    DELETE FROM testimoni 
+                    WHERE serviceTrId = %s
+                """, [service_tr_id])
+                transaction.commit()
+            return JsonResponse({'success': True, 'message': 'Testimonial deleted successfully.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
