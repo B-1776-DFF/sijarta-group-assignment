@@ -22,20 +22,28 @@
         <div class="flex justify-center mb-8">
             <form method="get" class="flex items-center space-x-2 bg-white p-4 rounded-md shadow-md" id="filterForm">
                 <select name="category" id="category" class="w-[180px] bg-white text-black border-none">
-                    <option value="All" {% if selected_category == "All" %}selected{% endif %}>Select Categories</option>
+                    <option value="All">All Categories</option>
                     {% for category_id, category_name in worker_service_categories %}
-                        <option value="{{ category_id }}" {% if selected_category == category_id %}selected{% endif %}>{{ category_name }}</option>
+                        <option value="{{ category_id }}" {% if selected_category == category_id %}selected{% endif %}>
+                            {{ category_name }}
+                        </option>
                     {% endfor %}
                 </select>
-                <select name="subcategory" id="subcategory" class="w-[180px] bg-white text-black border-none" {% if not selected_category or selected_category == "All" %}disabled{% endif %}>
-                    <option value="All" {% if selected_subcategory == "All" %}selected{% endif %}>Select Subcategories</option>
+                
+                <select name="subcategory" id="subcategory" class="w-[180px] bg-white text-black border-none">
+                    <option value="All">All Subcategories</option>
                     {% for sub_id, sub_name, cat_id in subcategories %}
-                        {% if not selected_category or selected_category == "All" or cat_id == selected_category %}
-                            <option value="{{ sub_id }}" {% if selected_subcategory == sub_id %}selected{% endif %}>{{ sub_name }}</option>
-                        {% endif %}
+                        <option value="{{ sub_id }}" 
+                                data-category="{{ cat_id }}"
+                                {% if selected_subcategory == sub_id %}selected{% endif %}>
+                            {{ sub_name }}
+                        </option>
                     {% endfor %}
                 </select>
-                <button type="submit" class="bg-pink-500 hover:bg-pink-600 text-white border-none px-4 py-2 rounded-md">Filter</button>
+                
+                <button type="submit" class="bg-pink-500 hover:bg-pink-600 text-white border-none px-4 py-2 rounded-md">
+                    Filter
+                </button>
             </form>
         </div>
         
@@ -50,7 +58,7 @@
                         <p class="text-sm mb-2"><strong>Order Date:</strong> {{ order.3 }}</p>
                         <p class="text-sm mb-2"><strong>Working Date:</strong> {{ order.4 }}</p>
                         <p class="text-sm mb-2"><strong>Session:</strong> {{ order.5 }}</p>
-                        <p class="text-sm mb-4"><strong>Total Amount:</strong> Rp{{ order.6|floatformat:0 }},00</p>
+                        <p class="text-sm mb-4"><strong>Total Amount:</strong> Rp{{ order.6|floatformat:2 }}</p>
                         <div class="inline-block px-2 py-1 rounded-full text-sm font-bold" style="
                             {% if order.7 == 'Processing' %}background-color: #ec4899; color: white;
                             {% else %}background-color: #3b82f6; color: white;
@@ -80,40 +88,56 @@
         document.addEventListener('DOMContentLoaded', function() {
             const categorySelect = document.getElementById('category');
             const subcategorySelect = document.getElementById('subcategory');
-
-            // Event listener for category change
-            categorySelect.addEventListener('change', function() {
-                const category = this.value;
-
-                if (category === 'All') {
-                    subcategorySelect.innerHTML = '<option value="All">All Subcategories</option>';
+            
+            function updateSubcategories() {
+                const selectedCategory = categorySelect.value;
+                const subcategoryOptions = subcategorySelect.querySelectorAll('option');
+                
+                // First, show all options and remove any previous display styles
+                subcategoryOptions.forEach(option => {
+                    option.hidden = false;
+                    option.style.display = '';
+                    option.classList.remove('hidden');
+                });
+                
+                // Disable subcategory if category is 'All'
+                if (selectedCategory === 'All') {
                     subcategorySelect.disabled = true;
                 } else {
-                    // Fetch subcategories based on selected category
-                    fetch(`?category=${category}`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(response => response.text())
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const newSubcategorySelect = doc.getElementById('subcategory');
-                        subcategorySelect.innerHTML = newSubcategorySelect.innerHTML;
-                        subcategorySelect.disabled = false;
-                    })
-                    .catch(error => console.error('Error:', error));
-                }
-            });
+                    subcategorySelect.disabled = false;
 
-            // Pre-set the subcategory dropdown based on initial selected category
-            if (categorySelect.value && categorySelect.value !== 'All') {
-                categorySelect.dispatchEvent(new Event('change'));
+                    // Filter subcategories to show only those matching the selected category
+                    subcategoryOptions.forEach(option => {
+                        if (option.value === 'All') return; // Skip "All" option
+                        
+                        const categoryId = option.getAttribute('data-category');
+                        if (categoryId !== selectedCategory) {
+                            option.hidden = true;
+                            option.style.display = 'none';
+                        }
+                    });
+
+                    // Check if current selection is valid
+                    const currentSelection = subcategorySelect.value;
+                    if (currentSelection !== 'All') {
+                        const isCurrentValid = Array.from(subcategoryOptions).some(
+                            opt => opt.value === currentSelection && !opt.hidden
+                        );
+                        if (!isCurrentValid) {
+                            subcategorySelect.value = 'All';
+                        }
+                    }
+                }
             }
+
+            // Event listener for category change
+            categorySelect.addEventListener('change', updateSubcategories);
+            
+            // Initialize on page load
+            updateSubcategories();
         });
 
+        
         function acceptJob(orderId) {
             fetch("{% url 'service_jobs:accept_job' %}", {
                 method: 'POST',
