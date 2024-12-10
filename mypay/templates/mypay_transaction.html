@@ -34,12 +34,18 @@
             <div id="servicePaymentFields" class="transaction-fields hidden mb-4">
                 <label for="serviceSessionId" class="block mb-2 text-pink-600">Service Session</label>
                 <select id="serviceSessionId" name="serviceSessionId" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
-                    <option value="">Select Service Session</option>
-                    <option value="service1">Service 1</option>
-                    <option value="service2">Service 2</option>
+                    <option value="">Select Service Session To Pay</option>
+                    {% for order in unpaid_orders %}
+                    <option value="{{ order.id }}" data-price="{{ order.price }}">
+                        {{ order.service_name }} - {{ order.order_date }}
+                        (Rp. {{ order.price|floatformat:2 }})
+                    </option>
+                    {% endfor %}
                 </select>
-                <label for="servicePrice" class="block mb-2 text-pink-600 mt-4">Service Price</label>
-                <input type="text" id="servicePrice" name="servicePrice" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" value="$100" disabled>
+                <div id="orderDetails" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                    <p class="text-gray-700">Service Date: <span id="serviceDate" class="font-medium"></span></p>
+                    <p class="text-gray-700">Total Price: <span id="totalPrice" class="font-medium text-pink-600"></span></p>
+                </div>
             </div>
 
             <!-- Transfer Fields -->
@@ -55,11 +61,11 @@
                 <label for="bankName" class="block mb-2 text-pink-600">Bank Name</label>
                 <select id="bankName" name="bankName" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500">
                     <option>Select Bank</option>
-                    <option value="GoPay">GoPay</option>
-                    <option value="OVO">OVO</option>
-                    <option value="Virtual Account BCA">Virtual Account BCA</option>
-                    <option value="BNI">BNI</option>
+                    <option value="BCA">BCA</option>
                     <option value="Mandiri">Mandiri</option>
+                    <option value="BNI">BNI</option>
+                    <option value="BTN">BTN</option>
+                    <option value="BRI">BRI</option>
                 </select>
                 <label for="bankAccountNumber" class="block mb-2 text-pink-600 mt-4">Bank Account Number</label>
                 <input type="text" id="bankAccountNumber" name="bankAccountNumber" class="p-2 border rounded-md w-full bg-gray-100 text-gray-800 focus:border-pink-500" placeholder="Enter account number">
@@ -95,6 +101,25 @@
     const transferFields = document.getElementById('transferFields');
     const withdrawalFields = document.getElementById('withdrawalFields');
 
+    // Handle service session selection
+    document.getElementById('serviceSessionId').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const orderDetails = document.getElementById('orderDetails');
+        
+        if (this.value) {
+            const price = selectedOption.getAttribute('data-price');
+            const formattedPrice = new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR'
+            }).format(price);
+            
+            document.getElementById('totalPrice').textContent = formattedPrice;
+            orderDetails.classList.remove('hidden');
+        } else {
+            orderDetails.classList.add('hidden');
+        }
+    });
+
     function updateFormFields() {
         topUpFields.classList.add('hidden');
         servicePaymentFields.classList.add('hidden');
@@ -120,29 +145,57 @@
     transactionType.addEventListener('change', updateFormFields);
     updateFormFields(); // Initialize on load
 
-    // Handle form submission via AJAX
+    // Handle form submission
     const form = document.getElementById('transactionForm');
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', function(event) {
         event.preventDefault();
+        
+        // Get the selected transaction type and prepare data
+        const transactionType = document.getElementById('transactionType').value;
+        let data = {
+            transaction_type: transactionType === 'topUp' ? 'Top-up' : 
+                            transactionType === 'servicePayment' ? 'Payment' :
+                            transactionType === 'transfer' ? 'Transfer' : 'Withdrawal'
+        };
 
-        const formData = new FormData(form);
+        // Add relevant data based on transaction type
+        switch(transactionType) {
+            case 'topUp':
+                data.amount = parseFloat(document.getElementById('topUpAmount').value);
+                break;
+            case 'servicePayment':
+                data.order_id = document.getElementById('serviceSessionId').value;
+                break;
+            case 'transfer':
+                data.recipient_phone = document.getElementById('recipientPhone').value;
+                data.amount = parseFloat(document.getElementById('transferAmount').value);
+                break;
+            case 'withdrawal':
+                data.bank_name = document.getElementById('bankName').value;
+                data.account_number = document.getElementById('bankAccountNumber').value;
+                data.amount = parseFloat(document.getElementById('withdrawalAmount').value);
+                break;
+        }
+
+        // Send request
         fetch("{% url 'mypay:transaction' %}", {
             method: 'POST',
-            body: formData,
             headers: {
+                'Content-Type': 'application/json',
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             },
+            body: JSON.stringify(data)
         })
         .then(response => response.json())
         .then(data => {
             alert(data.message);
             if (data.success) {
-                // Optionally, update the balance and transaction history dynamically
-                location.reload(); // Reload the page to reflect changes
+                location.reload();
             }
         })
         .catch(error => {
-            alert('Error: ' + error.message);
+            console.error('Error:', error);
+            alert('Transaction failed: ' + error.message);
         });
     });
 </script>

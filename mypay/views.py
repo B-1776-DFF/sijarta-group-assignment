@@ -5,6 +5,7 @@ from datetime import datetime
 from django.db import connection
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from uuid import *
 
 def mypay_view(request):
     uuid = request.session.get('user_id')
@@ -41,7 +42,7 @@ def mypay_view(request):
             JOIN sijartagroupassignment.tr_mypay_category tmc 
                 ON tm.categoryid = tmc.id
             WHERE tm.userid = %s
-            ORDER BY tm.date DESC
+            ORDER BY tm.date DESC, tm.id DESC
         """, [user_id])
         
         transactions = []
@@ -74,7 +75,6 @@ def mypay_transactions(request):
         return redirect('landingpage')
     
     if request.method == "POST":
-        #user_id = 'a322b805-43a8-48e2-901b-a0dda9b38924' # Sample user ID
         user_id = request.session.get('user_id')
         if not user_id:
             return JsonResponse({"success": False, "message": "User not logged in"}, status=403)
@@ -85,74 +85,93 @@ def mypay_transactions(request):
         try:
             with connection.cursor() as cursor:
                 # State 1: TopUp MyPay
-                if transaction_type == "topup":
+                if transaction_type == "Top-up":
                     amount = float(data.get("amount", 0))
                     if amount <= 0:
                         return JsonResponse({"success": False, "message": "Invalid top-up amount"}, status=400)
 
+                    # Update user balance
                     cursor.execute("""
                         UPDATE sijartagroupassignment."USER"
                         SET mypaybalance = mypaybalance + %s
                         WHERE id = %s
                     """, [amount, user_id])
 
+                    # Record transaction
                     cursor.execute("""
-                        INSERT INTO sijartagroupassignment.tr_mypay (userid, nominal, date, categoryid)
-                        VALUES (%s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Top-Up'))
-                    """, [user_id, amount, datetime.now()])
+                        INSERT INTO sijartagroupassignment.tr_mypay (id, userid, nominal, date, categoryid)
+                        VALUES (%s, %s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Top-Up'))
+                    """, [str(uuid4()), user_id, amount, datetime.now()])
 
                     return JsonResponse({"success": True, "message": "Top-up successful"})
 
                 # State 2: Service Payment
-                elif transaction_type == "service_payment":
-                    service_id = data.get("service_id")
-                    if not service_id:
-                        return JsonResponse({"success": False, "message": "Service ID required"}, status=400)
+                elif transaction_type == "Payment":
+                    order_id = data.get("order_id")
+                    if not order_id:
+                        return JsonResponse({"success": False, "message": "Order ID required"}, status=400)
 
+                    # Get order details
                     cursor.execute("""
-                        SELECT price FROM sijartagroupassignment.services
-                        WHERE id = %s AND userid = %s
-                    """, [service_id, user_id])
-                    service = cursor.fetchone()
-                    if not service:
-                        return JsonResponse({"success": False, "message": "Service not found"}, status=404)
+                        SELECT tso.totalprice, tso.id 
+                        FROM sijartagroupassignment.tr_service_order tso
+                        JOIN sijartagroupassignment.tr_order_status tos ON tso.id = tos.servicetrid
+                        JOIN sijartagroupassignment.order_status os ON tos.statusid = os.id
+                        WHERE tso.id = %s AND tso.customerid = %s
+                        AND os.status = 'Payment Pending'
+                    """, [order_id, user_id])
+                    
+                    order = cursor.fetchone()
+                    if not order:
+                        return JsonResponse({"success": False, "message": "Invalid or already paid order"}, status=404)
 
-                    price = float(service[0])
+                    price = float(order[0])
 
+                    # Check and update balance
                     cursor.execute("""
                         UPDATE sijartagroupassignment."USER"
                         SET mypaybalance = mypaybalance - %s
                         WHERE id = %s AND mypaybalance >= %s
+                        RETURNING mypaybalance
                     """, [price, user_id, price])
 
                     if cursor.rowcount == 0:
                         return JsonResponse({"success": False, "message": "Insufficient balance"}, status=400)
 
+                    # Record payment transaction
                     cursor.execute("""
-                        INSERT INTO sijartagroupassignment.tr_mypay (userid, nominal, date, categoryid)
-                        VALUES (%s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Service Payment'))
-                    """, [user_id, -price, datetime.now()])
+                        INSERT INTO sijartagroupassignment.tr_mypay (id, userid, nominal, date, categoryid)
+                        VALUES (%s, %s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Payment'))
+                    """, [str(uuid4()), user_id, -price, datetime.now()])
 
-                    return JsonResponse({"success": True, "message": "Service payment successful"})
+                    # Update order status to Processing
+                    cursor.execute("""
+                        INSERT INTO sijartagroupassignment.tr_order_status (servicetrid, statusid, date)
+                        VALUES (%s, (SELECT id FROM sijartagroupassignment.order_status WHERE status = 'Processing'), %s)
+                    """, [order_id, datetime.now()])
 
-                # State 3: Transfer MyPay
-                elif transaction_type == "transfer":
+                    return JsonResponse({"success": True, "message": "Payment successful"})
+
+                elif transaction_type == "Transfer":
                     recipient_phone = data.get("recipient_phone")
                     amount = float(data.get("amount", 0))
 
-                    if amount <= 0:
-                        return JsonResponse({"success": False, "message": "Invalid transfer amount"}, status=400)
+                    if not recipient_phone or amount <= 0:
+                        return JsonResponse({"success": False, "message": "Invalid transfer details"}, status=400)
 
+                    # Get recipient ID
                     cursor.execute("""
-                        SELECT id FROM sijartagroupassignment."USER" WHERE phonenum = %s
+                        SELECT id FROM sijartagroupassignment."USER"
+                        WHERE phonenum = %s
                     """, [recipient_phone])
+                    
                     recipient = cursor.fetchone()
-
                     if not recipient:
                         return JsonResponse({"success": False, "message": "Recipient not found"}, status=404)
 
                     recipient_id = recipient[0]
 
+                    # Deduct from sender
                     cursor.execute("""
                         UPDATE sijartagroupassignment."USER"
                         SET mypaybalance = mypaybalance - %s
@@ -162,49 +181,64 @@ def mypay_transactions(request):
                     if cursor.rowcount == 0:
                         return JsonResponse({"success": False, "message": "Insufficient balance"}, status=400)
 
+                    # Add to recipient
                     cursor.execute("""
                         UPDATE sijartagroupassignment."USER"
                         SET mypaybalance = mypaybalance + %s
                         WHERE id = %s
                     """, [amount, recipient_id])
 
+                    # Record sender transaction
                     cursor.execute("""
-                        INSERT INTO sijartagroupassignment.tr_mypay (userid, nominal, date, categoryid)
-                        VALUES (%s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Transfer'))
-                    """, [user_id, -amount, datetime.now()])
+                        INSERT INTO sijartagroupassignment.tr_mypay (id, userid, nominal, date, categoryid)
+                        VALUES (%s, %s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Transfer'))
+                    """, [str(uuid4()), user_id, -amount, datetime.now()])
 
+                    # Record recipient transaction
                     cursor.execute("""
-                        INSERT INTO sijartagroupassignment.tr_mypay (userid, nominal, date, categoryid)
-                        VALUES (%s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Received Transfer'))
-                    """, [recipient_id, amount, datetime.now()])
+                        INSERT INTO sijartagroupassignment.tr_mypay (id, userid, nominal, date, categoryid)
+                        VALUES (%s, %s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Received Transfer'))
+                    """, [str(uuid4()), recipient_id, amount, datetime.now()])
 
                     return JsonResponse({"success": True, "message": "Transfer successful"})
-
-                # State 4: Withdrawal
-                elif transaction_type == "withdrawal":
+                
+                elif transaction_type == "Withdrawal":
                     bank_name = data.get("bank_name")
                     account_number = data.get("account_number")
                     amount = float(data.get("amount", 0))
-
+                
                     if not bank_name or not account_number or amount <= 0:
-                        return JsonResponse({"success": False, "message": "Invalid withdrawal details"}, status=400)
-
+                        return JsonResponse({
+                            "success": False, 
+                            "message": "Invalid withdrawal details"
+                        }, status=400)
+                
+                    # Check and update balance
                     cursor.execute("""
                         UPDATE sijartagroupassignment."USER"
                         SET mypaybalance = mypaybalance - %s
                         WHERE id = %s AND mypaybalance >= %s
+                        RETURNING mypaybalance
                     """, [amount, user_id, amount])
-
+                
                     if cursor.rowcount == 0:
-                        return JsonResponse({"success": False, "message": "Insufficient balance"}, status=400)
-
+                        return JsonResponse({
+                            "success": False, 
+                            "message": "Insufficient balance"
+                        }, status=400)
+                
+                    # Record withdrawal transaction
                     cursor.execute("""
-                        INSERT INTO sijartagroupassignment.tr_mypay (userid, nominal, date, categoryid, details)
-                        VALUES (%s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Withdrawal'), %s)
-                    """, [user_id, -amount, datetime.now(), f"{bank_name} - {account_number}"])
+                        INSERT INTO sijartagroupassignment.tr_mypay (id, userid, nominal, date, categoryid)
+                        VALUES (%s, %s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Withdrawal'))
+                    """, [str(uuid4()), user_id, -amount, datetime.now()])
+                
+                    return JsonResponse({
+                        "success": True, 
+                        "message": f"Successfully withdrawn {amount:,.2f} to {bank_name} account ending in {account_number[-4:]}"
+                    })
 
-                    return JsonResponse({"success": True, "message": "Withdrawal successful"})
-
+                # Return error for invalid transaction type
                 else:
                     return JsonResponse({"success": False, "message": "Invalid transaction type"}, status=400)
 
