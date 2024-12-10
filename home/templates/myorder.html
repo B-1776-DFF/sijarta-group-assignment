@@ -51,48 +51,58 @@ Service Orders
     </div>
 </div>
 
-<!-- Modal for Booking Service -->
-<div class="modal fade" id="bookServiceModal" tabindex="-1" aria-labelledby="bookServiceModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="bookServiceModalLabel">Book a Service</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
+    <!-- Booking Modal -->
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true" data-bs-backdrop="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="bookingModalLabel">Book Service</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
                 <form method="POST" action="{% url 'book_service' %}" id="bookingForm">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="order_date" class="form-label">Order Date</label>
-                        <input type="date" class="form-control" id="order_date" name="order_date" value="{{ today_date }}" required>
+                    <div class="modal-body">
+                        <!-- Selected Session -->
+                        <div class="mb-3">
+                            <label for="selectedSession" class="form-label">Selected Session</label>
+                            <input type="text" id="selectedSession" class="form-control" readonly>
+                        </div>
+                        <!-- Price -->
+                        <div class="mb-3">
+                            <label for="sessionPrice" class="form-label">Price</label>
+                            <input type="text" id="sessionPrice" class="form-control" readonly>
+                        </div>
+                        <!-- Order Date -->
+                        <div class="mb-3">
+                            <label for="orderDate" class="form-label">Order Date</label>
+                            <input type="text" id="orderDate" name="order_date" class="form-control" value="{{ today_date }}" readonly>
+                        </div>
+                        <!-- Discount Code -->
+                        <div class="mb-3">
+                            <label for="discountCode" class="form-label">Discount Code</label>
+                            <input type="text" id="discountCode" name="discount_code" class="form-control" placeholder="Enter discount code">
+                        </div>
+                        <!-- Payment Method -->
+                        <div class="mb-3">
+                            <label for="paymentMethod" class="form-label">Payment Method</label>
+                            <select id="paymentMethod" name="payment_method" class="form-select">
+                                <option value="credit_card">Credit Card</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
+                        </div>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="discount_code" class="form-label">Discount Code</label>
-                        <input type="text" class="form-control" id="discount_code" name="discount_code">
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">
+                            Confirm Booking
+                        </button>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="payment_method" class="form-label">Payment Method</label>
-                        <select class="form-select" id="payment_method" name="payment_method" required>
-                            <option value="1">Credit Card</option>
-                            <option value="2">PayPal</option>
-                            <option value="3">Bank Transfer</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="total_payment" class="form-label">Total Payment</label>
-                        <input type="number" class="form-control" id="total_payment" name="total_payment" required>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Book Service</button>
                 </form>
             </div>
         </div>
     </div>
-</div>
-
+    
 {% block extra_js %}
 <script>
     function cancelOrder(orderId) {

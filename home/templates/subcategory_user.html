@@ -16,50 +16,66 @@
     </div>
 
     <!-- Description Section -->
-    <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
-        <h5>Description</h5>
+    <section class="mb-4 p-4 border rounded bg-light shadow-sm">
+        <h5 class="fw-bold">Description</h5>
         <p>{{ description }}</p>
-    </div>
+    </section>
 
-    <!-- Service Session Options Section -->
-    <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
-        <h5>Service Session Options</h5>
-        {% if sessions %}
-            <div class="list-group">
+    <!-- Service Sessions Section -->
+    <section class="mb-4 p-4 border rounded bg-light shadow-sm">
+        <h5 class="fw-bold">Service Sessions</h5>
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Service Session</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Action</th>
+                </tr>
+            </thead>
+            <tbody>
                 {% for session in sessions %}
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>Session {{ session.1 }}</span>
-                    <span class="badge bg-info">${{ session.2|floatformat:2 }}</span>
-                    <!-- Button to trigger modal -->
-                    <button type="button" class="btn btn-outline-primary btn-sm"
-                            data-bs-toggle="modal"
+                <tr>
+                    <td>{{ session.0 }}</td> <!-- session_name -->
+                    <td>Rp.{{ session.1|floatformat:2 }}</td> <!-- session_price -->
+                    <td>
+                        <button 
+                            type="button" 
+                            class="btn btn-outline-primary btn-sm"
+                            data-bs-toggle="modal" 
                             data-bs-target="#bookingModal"
-                            data-session-id="{{ session.0 }}"
-                            data-session-name="Session {{ session.1 }}"
-                            data-session-price="{{ session.2|floatformat:2 }}">
-                        Book Service
-                    </button>
-                </div>
+                            data-session-id="{{ session.2 }}"
+                            data-session-name="{{ session.0 }}"
+                            data-session-price="{{ session.1|floatformat:2 }}">
+                            Book Now
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center text-muted">No service sessions available.</td>
+                </tr>
                 {% endfor %}
-            </div>
-        {% else %}
-            <p class="text-muted">No sessions available for this subcategory at the moment.</p>
-        {% endif %}
-    </div>
+            </tbody>
+        </table>
+    </section>
 
     <!-- Workers Section -->
-    <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
-        <h5>Available Workers</h5>
+    <section class="mb-4 p-4 border rounded bg-light shadow-sm">
+        <h5 class="fw-bold">Available Workers</h5>
         <div class="row">
             {% for worker in workers %}
-            <div class="col-lg-3 col-md-4 col-sm-6 col-12 mb-4">
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
                 <div class="card shadow-sm text-center">
-                    <img src="{{ worker.1 }}" alt="Worker {{ forloop.counter }}" class="card-img-top img-fluid rounded-circle mx-auto mt-3" style="width: 80px; height: 80px; object-fit: cover;">
+                    <img src="{{ worker.1 }}" alt="Worker {{ forloop.counter }}" 
+                        class="card-img-top img-fluid rounded-circle mx-auto mt-3" 
+                        style="width: 80px; height: 80px; object-fit: cover;">
                     <div class="card-body">
                         <h6 class="card-title">{{ worker.0 }}</h6>
-                        <p class="card-text">Rate: {{ worker.2|floatformat:2 }}/10</p>
-                        <p class="card-text">Total Orders: {{ worker.3 }}</p>
-                        <a href="{% url 'worker_profile' worker.4 %}" class="btn btn-outline-primary btn-sm">View Profile</a>
+                        <p class="mb-1 text-muted">Rate: {{ worker.2|floatformat:2 }}/10</p>
+                        <p class="mb-2 text-muted">Total Orders: {{ worker.3 }}</p>
+                        <a href="{% url 'worker_profile' worker.4 %}" class="btn btn-outline-primary btn-sm">
+                            View Profile
+                        </a>
                     </div>
                 </div>
             </div>
@@ -67,17 +83,17 @@
             <p class="text-muted">No workers available for this subcategory.</p>
             {% endfor %}
         </div>
-    </div>
+    </section>
 
     <!-- Booking Modal -->
-    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true" data-bs-backdrop="false">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="bookingModalLabel">Book Service</h5>
+                    <h5 class="modal-title fw-bold" id="bookingModalLabel">Book Service</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="POST" action="" id="bookingForm">
+                <form method="POST" action="{% url 'book_service'%}" id="bookingForm">
                     {% csrf_token %}
                     <div class="modal-body">
                         <!-- Selected Session -->
@@ -85,67 +101,69 @@
                             <label for="selectedSession" class="form-label">Selected Session</label>
                             <input type="text" id="selectedSession" class="form-control" readonly>
                         </div>
-
                         <!-- Price -->
                         <div class="mb-3">
                             <label for="sessionPrice" class="form-label">Price</label>
                             <input type="text" id="sessionPrice" class="form-control" readonly>
                         </div>
-
                         <!-- Order Date -->
                         <div class="mb-3">
                             <label for="orderDate" class="form-label">Order Date</label>
                             <input type="text" id="orderDate" name="order_date" class="form-control" value="{{ today_date }}" readonly>
                         </div>
-
                         <!-- Discount Code -->
                         <div class="mb-3">
                             <label for="discountCode" class="form-label">Discount Code</label>
                             <input type="text" id="discountCode" name="discount_code" class="form-control" placeholder="Enter discount code">
                         </div>
-
                         <!-- Payment Method -->
                         <div class="mb-3">
                             <label for="paymentMethod" class="form-label">Payment Method</label>
                             <select id="paymentMethod" name="payment_method" class="form-select">
-                                <option value="credit_card">Credit Card</option>
-                                <option value="paypal">PayPal</option>
-                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="Credit">Credit</option>
+                                <option value="Debit">Debit</option>
+                                <option value="Transfer">Transfer</option>
+                                <option value="Cryptocurrency">Cryptocurrency</option>
                             </select>
                         </div>
+                        <input type="hidden" name="total_payment" value="{{ 5000.1|floatformat:2 }}">
+                        <input type="hidden" name="service_category_id" value="{{ subcategory_id }}">
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Confirm Booking</button>
+                        <button type="submit" class="btn btn-primary">
+                            Confirm Booking
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
 </div>
 
 <!-- Testimonials Section -->
-<div class="section mb-4 p-4 border rounded bg-light shadow-sm">
-    <h5>Testimonials</h5>
+<section class="mb-4 p-4 border rounded bg-light shadow-sm">
+    <h5 class="fw-bold">Testimonials</h5>
     {% if testimonials %}
     <div class="list-group">
         {% for testimonial in testimonials %}
         <div class="list-group-item">
-            <h6>{{ testimonial.0 }} <small class="text-muted">({{ testimonial.1 }})</small></h6>
-            <p>{{ testimonial.2 }}</p>
+            <h6 class="fw-bold">{{ testimonial.0 }} <small class="text-muted">({{ testimonial.1 }})</small></h6>
+            <p class="mb-1">{{ testimonial.2 }}</p>
             <p><strong>Rating:</strong> {{ testimonial.3 }}/5</p>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <p>No testimonials available for this service category.</p>
+    <p class="text-muted">No testimonials available for this service category.</p>
     {% endif %}
-</div>
+</section>
 
 {% endblock %}
 
 {% block extra_js %}
-<!-- JavaScript for Dynamic Modal Behavior -->
+<!-- JavaScript for Modal Behavior -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const bookingModal = document.getElementById('bookingModal');
@@ -158,14 +176,17 @@
             const sessionId = button.getAttribute('data-session-id');
             const sessionName = button.getAttribute('data-session-name');
             const sessionPriceValue = button.getAttribute('data-session-price');
-
-            // Populate modal fields with selected session details
+            
             selectedSession.value = sessionName;
-            sessionPrice.value = `$${sessionPriceValue}`;
+            sessionPrice.value = `Rp.${sessionPriceValue}`;
+        });
 
-            // Set the form's action URL dynamically
-            bookingForm.action = `/book-service/${sessionId}/`;
+        bookingModal.addEventListener('hidden.bs.modal', function () {
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
         });
     });
 </script>
-{% endblock extra_js %}
+{% endblock %}
