@@ -6,17 +6,20 @@
 
 {% block content %}
 <div class="container mt-4">
-
-    <!-- Subcategory Header Section -->
-    <div class="row mb-4">
-        <div class="col-6">
-            <h1>{{ subcategory_name }}</h1>
-            <p>{{ description }}</p>
-        </div>
-        <div class="col-6 text-end">
-            <p><strong>Category:</strong> {{ category_name }}</p>  <!-- Ensure category_name is passed -->
+    <!-- Header Section -->
+    <div class="row mb-4 text-center">
+        <div class="col-12">
+            <h1 class="text-primary">{{ subcategory_name }}</h1>
+            <span class="badge bg-secondary p-2">{{ category_name }}</span>
         </div>
     </div>
+
+    <!-- Description Section -->
+    <section class="mb-4 p-4 border rounded bg-light shadow-sm">
+        <h5 class="fw-bold">Description</h5>
+        <p>{{ description }}</p>
+    </section>
+
 
     <!-- Service Session Options -->
     <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
@@ -36,7 +39,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="2">No service sessions available for this subcategory.</td>
+                    <td colspan="2" class="text-center text-muted">No service sessions available for this subcategory.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -54,22 +57,22 @@
                     <div class="card-body">
                         <h6 class="card-title">{{ worker.1 }}</h6>
                         <p class="card-text">Rate: {{ worker.3|floatformat:2 }}/10</p>
-                        <p class="card-text">Total Orders: {{ worker.4 }}</p>
+                        <p class="card-text">Total Orders: {{ worker.3 }}</p>
                         <a href="{% url 'worker_profile' worker.0 %}" class="btn btn-outline-primary btn-sm">View Profile</a>
                     </div>
                 </div>
             </div>
             {% empty %}
-            <p class="text-muted">No workers available for this subcategory.</p>
+            <p class="text-muted text-center">No workers available for this subcategory.</p>
             {% endfor %}
         </div>
     </div>
 
     <!-- Join Button for Workers -->
     {% if user_is_worker %}
-        <div class="section mb-4 p-4 border rounded bg-light shadow-sm">
+        <div class="section mb-4 p-4 border rounded bg-light shadow-sm text-center">
             {% if user_is_joined %}
-                <p>You are already part of this service category.</p>
+                <p class="text-success">You are already part of this service category.</p>
             {% else %}
                 <form method="post" action="{% url 'join_service_category' subcategory_id %}">
                     {% csrf_token %}
