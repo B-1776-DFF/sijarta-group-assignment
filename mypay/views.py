@@ -100,7 +100,7 @@ def mypay_transactions(request):
                     # Record transaction
                     cursor.execute("""
                         INSERT INTO sijartagroupassignment.tr_mypay (id, userid, nominal, date, categoryid)
-                        VALUES (%s, %s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Top-Up'))
+                        VALUES (%s, %s, %s, %s, (SELECT id FROM sijartagroupassignment.tr_mypay_category WHERE name = 'Top-up'))
                     """, [str(uuid4()), user_id, amount, datetime.now()])
 
                     return JsonResponse({"success": True, "message": "Top-up successful"})
