@@ -5,18 +5,24 @@ from datetime import datetime
 import json
 
 def service_jobs(request):
-    uuid = request.session.get('user_id')
-    if not uuid:
+    worker_id = request.session.get('user_id')
+    if not worker_id:
         return redirect('landingpage')
-    
-    worker_id = '38297fec-b4c2-4991-8dde-e97df30ef1e8'
-    
+        
     # Fetch service categories for the worker
     category_query = """
     SET search_path TO sijartagroupassignment;
-    SELECT wsc.serviceCategoryId, sc.CategoryName
+    SELECT DISTINCT wsc.serviceCategoryId, sc.CategoryName
     FROM worker_service_category AS wsc
-    LEFT JOIN service_category AS sc ON wsc.serviceCategoryId = sc.Id
+    JOIN service_category AS sc ON wsc.serviceCategoryId = sc.Id
+    WHERE wsc.workerId = %s
+    """
+    
+    subcategory_query = """
+    SET search_path TO sijartagroupassignment;
+    SELECT ss.Id, ss.SubcategoryName, ss.ServiceCategoryId
+    FROM service_subcategory ss
+    JOIN worker_service_category wsc ON ss.ServiceCategoryId = wsc.ServiceCategoryId
     WHERE wsc.workerId = %s
     """
     
@@ -63,12 +69,17 @@ def service_jobs(request):
         cursor.execute(category_query, [worker_id])
         worker_service_categories = cursor.fetchall()
         
+        # Fetch subcategories
+        cursor.execute(subcategory_query, [worker_id])
+        subcategories = cursor.fetchall()
+        
         cursor.execute(order_query, query_params)
         orders = cursor.fetchall()
 
     return render(request, 'service_job.html', {
         'orders': orders,
         'worker_service_categories': worker_service_categories,
+        'subcategories': subcategories, 
         'selected_category': selected_category,
         'selected_subcategory': selected_subcategory,
     })
@@ -79,7 +90,9 @@ def accept_job(request):
         try:
             data = json.loads(request.body)
             order_id = data.get('order_id')
-            worker_id = '38297fec-b4c2-4991-8dde-e97df30ef1e8'
+            worker_id = request.session.get('user_id')
+            if not worker_id:
+                return redirect('landingpage')
 
             with connection.cursor() as cursor:
                 # First check if order is still available
@@ -144,7 +157,9 @@ def accept_job(request):
     })
 
 def service_job_status(request):
-    worker_id = '38297fec-b4c2-4991-8dde-e97df30ef1e8'
+    worker_id = request.session.get('user_id')
+    if not worker_id:
+        return redirect('landingpage')
     selected_category = request.GET.get('category', 'All')
     selected_status = request.GET.get('status', 'All')
     

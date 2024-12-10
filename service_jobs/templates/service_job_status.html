@@ -62,15 +62,24 @@
                         </div>
 
                         {% if order.7 == 'Waiting' %}
-                            <button class="w-full font-semibold text-white mt-4 py-2 rounded-md" style="background-color: #d97706;" data-order-id="{{ order.0 }}" data-next-status="Arrived">
+                            <button class="update-status-btn w-full font-semibold text-white mt-4 py-2 rounded-md" 
+                                    style="background-color: #d97706;" 
+                                    data-order-id="{{ order.0 }}" 
+                                    data-next-status="Arrived">
                                 Arrived at Location
                             </button>
                         {% elif order.7 == 'Arrived' %}
-                            <button class="w-full font-semibold text-white mt-4 py-2 rounded-md" style="background-color: #2563eb;" data-order-id="{{ order.0 }}" data-next-status="Ongoing">
+                            <button class="update-status-btn w-full font-semibold text-white mt-4 py-2 rounded-md" 
+                                    style="background-color: #2563eb;" 
+                                    data-order-id="{{ order.0 }}" 
+                                    data-next-status="Ongoing">
                                 Start Service
                             </button>
                         {% elif order.7 == 'Ongoing' %}
-                            <button class="w-full font-semibold text-white mt-4 py-2 rounded-md" style="background-color: #059669;" data-order-id="{{ order.0 }}" data-next-status="Completed">
+                            <button class="update-status-btn w-full font-semibold text-white mt-4 py-2 rounded-md" 
+                                    style="background-color: #059669;" 
+                                    data-order-id="{{ order.0 }}" 
+                                    data-next-status="Completed">
                                 Complete Service
                             </button>
                         {% else %}
