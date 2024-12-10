@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect
-from django.db import connection
+from django.db import connection, transaction
 from django.contrib import messages
 import datetime
 from django.http import HttpResponse
 import uuid
+from time import timezone
 
 def homepage(request):
     uuid = request.session.get('user_id')
@@ -312,31 +313,7 @@ def book_service(request):
         'today_date': datetime.datetime.today().strftime('%Y-%m-%d')
     })
 
-def my_orders(request):
-    user_id = request.session.get('user_id')
-    if not user_id:
-        return redirect('login')  # Redirect to login if user is not authenticated
-
-    # Fetch all orders from the database for the user
-    fetch_orders = """
-    SELECT serviceTrId, orderDate, TotalPrice, serviceCategoryId, discountCode, paymentMethod
-    FROM sijartagroupassignment.TR_SERVICE_ORDER
-    WHERE customerId = %s
-    """
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(fetch_orders, [user_id])
-            orders = cursor.fetchall()
-
-        context = {
-            'orders': orders
-        }
-        print (orders)
-        return render(request, 'myorders.html', context)
-
-    except Exception as e:
-        print(request, "Unable to fetch orders. Please try again.")
-        return redirect('homepage')
+ 
     
         
 # def book_service(request):
@@ -395,7 +372,7 @@ def my_orders(request):
 #     return render(request, 'myorder.html', {'today_date': datetime.datetime.today().strftime('%Y-%m-%d')})
 
 
-# def my_orders(request):
+def my_orders(request):
     uuid = request.session.get('user_id')
     if not uuid:
         return redirect('landingpage')
@@ -408,7 +385,7 @@ def my_orders(request):
 
     if request.method == "POST":
         # Handle the creation of a new service order
-        order_date = datetime.now()  # Automatically set the current date
+        order_date = datetime.datetime.now()  # Automatically set the current date
         discount_code = request.POST.get('discount_code', None)
         payment_method = request.POST.get('payment_method')  # Dropdown value
         service_category_id = request.POST.get('service_category_id')  # Hidden input or passed value
@@ -557,3 +534,58 @@ def worker_profile_view(request, worker_id):
         }
     }
     return render(request, 'worker_profile.html', context)
+
+def update_rating(worker_id):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT AVG(t.Rating)
+                FROM TESTIMONI t
+                JOIN TR_SERVICE_ORDER tso ON t.serviceTrId = tso.id
+                WHERE tso.workerId = %s
+            """, [worker_id])
+            avg_rating = cursor.fetchone()[0]
+
+            if avg_rating is not None:
+                cursor.execute("""
+                    UPDATE WORKER
+                    SET Rate = %s
+                    WHERE Id = %s
+                """, [avg_rating, worker_id])
+                transaction.commit()
+    except Exception as e:
+        print(f"Error when updating.")
+
+from django.http import JsonResponse
+
+def submit_testimonial(request):
+    if request.method == "POST":
+        service_tr_id = request.POST.get('serviceTrId')
+        text = request.POST.get('text')
+        rating = request.POST.get('rating')
+        if not service_tr_id or not text or not rating:
+            return JsonResponse({'success': False, 'message': 'All fields are required.'})
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT os.Status, tso.workerId
+                    FROM TR_ORDER_STATUS tos
+                    JOIN ORDER_STATUS os ON tos.statusId = os.Id
+                    JOIN TR_SERVICE_ORDER tso ON tos.serviceTrId = tso.Id
+                    WHERE tos.serviceTrId = %s
+                    ORDER BY tos.date DESC
+                    LIMIT 1
+                """, [service_tr_id])
+                order_status = cursor.fetchone()
+                if not order_status or order_status[0] != 'Completed':
+                    return JsonResponse({'success': False, 'message': 'Only completed orders can be reviewed.'})
+                worker_id = order_status[1]
+                cursor.execute("""
+                    INSERT INTO TESTIMONI (serviceTrId, date, Text, Rating)
+                    VALUES (%s, %s, %s, %s)
+                """, [service_tr_id, datetime.datetime.now(), text, rating])
+                transaction.commit()
+                update_rating(worker_id)
+            return JsonResponse({'success': True, 'message': 'Testimonial submitted successfully.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})

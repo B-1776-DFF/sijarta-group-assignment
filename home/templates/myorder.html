@@ -18,38 +18,41 @@ Service Orders
             <thead class="table-light">
                 <tr>
                     <th>Order ID</th>
-                    <th>Service Name</th>
-                    <th>Order Status</th>
                     <th>Order Date</th>
-                    <th>Total Payment</th>
+                    <th>Total Price</th>
+                    <th>Discount Code</th>
+                    <th>Payment Method</th>
+                    <th>Order Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for order in service_orders %}
                 <tr>
-                    <td>{{ order.id }}</td>
-                    <td>{{ order.service_name }}</td>
-                    <td>{{ order.status }}</td>
-                    <td>{{ order.order_date }}</td>
-                    <td>Rp {{ order.total_payment|floatformat:2 }}</td>
+                    <td>{{ order.serviceTrId }}</td>
+                    <td>{{ order.orderDate }}</td>
+                    <td>Rp {{ order.TotalPrice|floatformat:2 }}</td>
+                    <td>{{ order.discountCode }}</td>
+                    <td>{{ order.paymentMethod }}</td>
+                    <td>{{ order.order_status }}</td>
                     <td>
-                        {% if order.status == "Waiting" or order.status == "Searching for Nearest Workers" %}
-                            <button class="btn btn-danger btn-sm" onclick="cancelOrder({{ order.id }})">Cancel Order</button>
-                        {% elif order.status == "Completed" and not order.has_testimonial %}
-                            <button class="btn btn-primary btn-sm" onclick="createTestimonial({{ order.id }})">Create Testimonial</button>
+                        {% if order.order_status == "Completed" %}
+                            {% if order.has_testimonial %}
+                                <button class="btn btn-warning btn-sm" onclick="deleteTestimonial('{{ order.serviceTrId }}')">Delete Testimonial</button>
+                            {% else %}
+                                <button class="btn btn-primary btn-sm" onclick="createTestimonial('{{ order.serviceTrId }}')">Create Testimonial</button>
+                            {% endif %}
                         {% endif %}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center">No orders found.</td>
+                    <td colspan="7" class="text-center">No orders found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
 
     <!-- Booking Modal -->
     <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true" data-bs-backdrop="false">
@@ -102,8 +105,49 @@ Service Orders
             </div>
         </div>
     </div>
+    <!-- Testimonial Modal -->
+    <div class="modal fade" id="testimonialModal" tabindex="-1" aria-labelledby="testimonialModalLabel" aria-hidden="true" data-bs-backdrop="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="testimonialModalLabel">Create Testimonial</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="testimonialForm" method="POST" action="{% url 'submit_testimonial' %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" id="serviceTrId" name="serviceTrId">
+                        <div class="mb-3">
+                            <label for="testimonialText" class="form-label">Testimonial</label>
+                            <textarea id="testimonialText" name="text" class="form-control" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="testimonialRating" class="form-label">Rating</label>
+                            <select id="testimonialRating" name="rating" class="form-select" required>
+                                <option value="" disabled selected>Select a rating</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Submit Testimonial</button>
+                    </div>
+                </form>                
+            </div>
+        </div>
+    </div>
+
     
-{% block extra_js %}
 <script>
     function cancelOrder(orderId) {
         if (confirm("Are you sure you want to cancel this order?")) {
@@ -112,8 +156,84 @@ Service Orders
     }
 
     function createTestimonial(orderId) {
-        window.location.href = `{% url 'login' %}?order_id=${orderId}`;
+        console.log("Opening testimonial modal for order ID:", orderId);
+        // Pre-fill serviceTrId in the modal and display it
+        document.getElementById('serviceTrId').value = orderId;
+        const modal = new bootstrap.Modal(document.getElementById('testimonialModal'));
+        modal.show();
+    
+    function deleteTestimonial(orderId) {
+        if (confirm('Are you sure you want to delete this testimonial?')) {
+            fetch('/delete_testimonial/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ serviceTrId: orderId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.getElementById("testimonialForm").addEventListener("submit", function (e) {
+        e.preventDefault(); // Prevent the form from submitting the normal way.
+
+        // Gather form data.
+        const formData = new FormData(this);
+
+        // Send data to the server via fetch.
+        fetch(this.action, {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken": formData.get("csrfmiddlewaretoken"),
+            },
+        })
+        .then((response) => response.json()) // Expect JSON response.
+        .then((data) => {
+            if (data.success) {
+                // Success logic: close modal and show success message.
+                const modal = document.getElementById("testimonialModal");
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                modalInstance.hide();
+
+                alert("Testimonial submitted successfully.");
+            } else {
+                // Display error message.
+                alert(data.message || "An error occurred.");
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            alert("An unexpected error occurred.");
+        });
+    });
+
     }
 </script>
-{% endblock extra_js %}
+
 {% endblock %}
