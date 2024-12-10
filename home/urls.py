@@ -9,4 +9,5 @@ urlpatterns = [
     path('worker/<uuid:worker_id>/', views.worker_profile_view, name='worker_profile'),
     path('cancel_service_order/', views.cancel_service_order, name='cancel_service_order'),
     path('order/', views.book_service, name='book_service'),
+    path('submit_testimonial/', views.submit_testimonial, name='submit_testimonial'),
 ]
