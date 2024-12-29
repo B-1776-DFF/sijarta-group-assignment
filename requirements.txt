@@ -6,3 +6,8 @@ psycopg2
 requests
 urllib3
 python-dotenv
+asgiref
+python-dateutil
+six
+sqlparse
+tzdata

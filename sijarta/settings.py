@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-czrbws$k1^-syose*v)8n)*3_rg*iym9n2&*fs#32dzqli+7*7
 PRODUCTION = os.getenv('PRODUCTION', False)
 DEBUG = not PRODUCTION
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "andriyo-averill-sijartab1776dff.pbp.cs.ui.ac.id", "10.0.2.2"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "andriyo-averill-sijartab1776dff.pbp.cs.ui.ac.id", "10.0.2.2", ".vercel.app"]
 
 
 # Application definition
